@@ -227,11 +227,6 @@ def build_word(data, s):
         tbl = doc.add_table(rows=0, cols=3)
         tbl.alignment = WD_TABLE_ALIGNMENT.LEFT
         tbl.style = 'Table Grid'
-        # Set table width
-        tblPr = tbl._tbl.get_or_add_tblPr()
-        tblW = OxmlElement('w:tblW')
-        tblW.set(qn('w:w'), str(CONTENT_W)); tblW.set(qn('w:type'), 'dxa')
-        tblPr.append(tblW)
 
         zebra = False
         for rd in rows_data:
