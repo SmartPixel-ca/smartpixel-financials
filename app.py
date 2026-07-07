@@ -178,9 +178,21 @@ def extract(pdf_files):
         b64 = base64.b64encode(f.read()).decode()
         content.append({"type":"document","source":{"type":"base64","media_type":"application/pdf","data":b64},"title":f.name})
     content.append({"type":"text","text":EXTRACT_PROMPT})
-    msg = client.messages.create(model="claude-sonnet-4-6", max_tokens=8096, messages=[{"role":"user","content":content}])
+    msg = client.messages.create(model="claude-sonnet-4-6", max_tokens=16000, messages=[{"role":"user","content":content}])
     raw = msg.content[0].text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
-    return json.loads(raw)
+    # Fix truncated JSON by finding the last complete closing brace
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        # Try to repair truncated JSON
+        last_brace = raw.rfind("}")
+        if last_brace > 0:
+            fixed = raw[:last_brace+1]
+            # Count and close any open braces
+            open_count = fixed.count("{") - fixed.count("}")
+            fixed += "}" * open_count
+            return json.loads(fixed)
+        raise
 
 # ── Word builder ──────────────────────────────────────────────────────────────
 def build_word(data, settings):
