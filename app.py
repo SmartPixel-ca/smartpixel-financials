@@ -187,13 +187,15 @@ def build_word(data, s):
         shd.set(qn('w:val'),'clear'); shd.set(qn('w:color'),'auto'); shd.set(qn('w:fill'),hex_color)
         tcPr.append(shd)
 
-    def set_cell_borders(cell, top=None, bottom=None, color="CCCCCC"):
+    def set_cell_borders(cell, top=None, bottom=None, color="000000", size="6"):
         tc=cell._tc; tcPr=tc.get_or_add_tcPr()
+        for ex in tcPr.findall(qn('w:tcBorders')): tcPr.remove(ex)
         tcB=OxmlElement('w:tcBorders')
-        for side,val in [('top',top),('bottom',bottom),('left','none'),('right','none')]:
+        for side in ['top','left','bottom','right']:
             b=OxmlElement(f'w:{side}')
+            val = top if side=='top' else bottom if side=='bottom' else None
             if val:
-                b.set(qn('w:val'),val); b.set(qn('w:sz'),'6' if val=='single' else '12'); b.set(qn('w:color'),color)
+                b.set(qn('w:val'),val); b.set(qn('w:sz'),size); b.set(qn('w:color'),color)
             else:
                 b.set(qn('w:val'),'none')
             tcB.append(b)
@@ -211,22 +213,25 @@ def build_word(data, s):
     def page_break(): doc.add_page_break()
 
     def company_header(subtitle, period):
-        p = doc.add_paragraph(); no_space(p)
-        run(p, s["company_name"], bold=True, size=14, color=NAVY)
-        p2 = doc.add_paragraph(); no_space(p2); p2.paragraph_format.space_after=Pt(2)
-        run(p2, subtitle, size=10, color=BLUE)
+        # Bold company name — large, matches reference
+        p = doc.add_paragraph(); no_space(p); p.paragraph_format.space_before=Pt(0)
+        run(p, s["company_name"].upper(), bold=True, size=18, color=RGBColor(0,0,0))
+        # Subtitle in normal weight
+        p2 = doc.add_paragraph(); no_space(p2); p2.paragraph_format.space_after=Pt(0)
+        run(p2, subtitle, size=10, color=RGBColor(0,0,0))
+        # Period line with thick underline beneath
         p3 = doc.add_paragraph()
         pPr=p3._p.get_or_add_pPr(); pBdr=OxmlElement('w:pBdr')
         bot=OxmlElement('w:bottom'); bot.set(qn('w:val'),'single')
-        bot.set(qn('w:sz'),'6'); bot.set(qn('w:color'),'1A2E4A')
+        bot.set(qn('w:sz'),'8'); bot.set(qn('w:color'),'000000')
         pBdr.append(bot); pPr.append(pBdr)
-        p3.paragraph_format.space_after=Pt(8)
-        run(p3, period, italic=True, size=9, color=GREY)
+        p3.paragraph_format.space_after=Pt(10)
+        run(p3, period, size=9, color=RGBColor(0,0,0))
 
     def make_fin_table(rows_data):
         tbl = doc.add_table(rows=0, cols=3)
         tbl.alignment = WD_TABLE_ALIGNMENT.LEFT
-        tbl.style = 'Table Grid'
+        tbl.style = 'Table Normal'
 
         zebra = False
         for rd in rows_data:
@@ -279,14 +284,16 @@ def build_word(data, s):
                 run(p2, str(val) if val else "—", bold=bold, size=9.5,
                     color=NAVY if sty in ("section","grand") else RGBColor(0,0,0))
 
-            # Borders: underline totals and grands
-            if sty in ("total","grand"):
+            # Borders matching reference style
+            if sty == "grand":
                 for c in cells:
-                    set_cell_borders(c, top="single", bottom="single",
-                                     color="1A2E4A" if sty=="grand" else "CCCCCC")
+                    set_cell_borders(c, top="single", bottom="single", color="000000", size="8")
+            elif sty == "total":
+                for c in cells:
+                    set_cell_borders(c, bottom="single", color="000000", size="6")
             elif sty == "section":
                 for c in cells:
-                    set_cell_borders(c, bottom="single", color="2E75B6")
+                    set_cell_borders(c, bottom="single", color="000000", size="6")
             else:
                 for c in cells: set_cell_borders(c)
 
