@@ -209,7 +209,7 @@ def pct(a,b):
 
 # ── Extraction prompt ─────────────────────────────────────────────────────────
 def build_prompt():
-    return """Extract ALL financial data from these QuickBooks PDFs/Excel for Active Média inc. / SmartPixel.
+    return """CRITICAL INSTRUCTION: You must respond with ONLY a valid JSON object. No explanation, no steps, no text before or after the JSON. Start your response with { and end with }. Do not write any words, headers, bullet points or analysis — ONLY the JSON object.\n\nExtract ALL financial data from these QuickBooks PDFs/Excel for Active Média inc. / SmartPixel.
 
 CRITICAL GROUPING RULES — group accounts exactly as follows:
 
@@ -333,6 +333,7 @@ def extract(files):
     msg = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=16000,
+        system="You are a financial data extraction API. You ONLY output valid JSON. Never write explanations, steps, headers, or any text outside the JSON object. Your entire response must be parseable by json.loads().",
         messages=[{"role": "user", "content": content}]
     )
     
