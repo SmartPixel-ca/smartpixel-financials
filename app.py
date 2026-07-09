@@ -320,20 +320,45 @@ def extract(files):
     client = anthropic.Anthropic(api_key=get_api_key())
     content = []
     for f in files:
-        b64 = base64.b64encode(f.read()).decode()
-        mt = "application/pdf" if f.name.endswith(".pdf") else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        if f.name.endswith(".xlsx"):
-            content.append({"type":"document","source":{"type":"base64","media_type":"application/pdf","data":b64},"title":f.name})
-        else:
-            content.append({"type":"document","source":{"type":"base64","media_type":"application/pdf","data":b64},"title":f.name})
-    content.append({"type":"text","text":build_prompt()})
-    msg = client.messages.create(model="claude-sonnet-4-6",max_tokens=16000,messages=[{"role":"user","content":content}])
-    raw = msg.content[0].text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        data_bytes = f.read()
+        b64 = base64.b64encode(data_bytes).decode()
+        # Always send as PDF document type (Claude supports both)
+        content.append({
+            "type": "document",
+            "source": {"type": "base64", "media_type": "application/pdf", "data": b64},
+            "title": f.name
+        })
+    content.append({"type": "text", "text": build_prompt()})
+    
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=16000,
+        messages=[{"role": "user", "content": content}]
+    )
+    
+    if not msg.content:
+        raise ValueError("Claude returned an empty response. Try uploading one PDF at a time.")
+    
+    raw = msg.content[0].text.strip()
+    if not raw:
+        raise ValueError("Claude returned empty text. The PDFs may be too large — try one at a time.")
+    
+    # Clean markdown fences
+    raw = raw.lstrip("```json").lstrip("```").rstrip("```").strip()
+    
     try:
         return json.loads(raw)
-    except:
-        last=raw.rfind("}"); fixed=raw[:last+1] if last>0 else raw
-        open_cnt=fixed.count("{")-fixed.count("}"); return json.loads(fixed+"}"*open_cnt)
+    except json.JSONDecodeError as e:
+        # Try to repair truncated JSON
+        last = raw.rfind("}")
+        if last > 0:
+            fixed = raw[:last+1]
+            open_cnt = fixed.count("{") - fixed.count("}")
+            try:
+                return json.loads(fixed + "}" * open_cnt)
+            except:
+                pass
+        raise ValueError(f"Could not parse Claude response as JSON: {e}\n\nRaw response (first 500 chars):\n{raw[:500]}")
 
 # ── PDF Builder — matches reference images exactly ────────────────────────────
 def build_pdf(data, s):
