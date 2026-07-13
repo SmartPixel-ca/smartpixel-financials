@@ -230,6 +230,8 @@ def pct(a,b):
 def build_prompt():
     return """CRITICAL INSTRUCTION: You must respond with ONLY a valid JSON object. No explanation, no steps, no text before or after the JSON. Start your response with { and end with }. Do not write any words, headers, bullet points or analysis — ONLY the JSON object.
 
+IMPORTANT: Only include accounts with a non-zero balance in your calculations. Ignore all accounts showing $0.00. Do not add deleted accounts (marked as 'deleted') to any group.
+
 Extract ALL financial data from these QuickBooks PDFs/Excel for Active Média inc. / SmartPixel.
 
 CRITICAL GROUPING RULES — group accounts exactly as follows:
@@ -683,7 +685,7 @@ def build_pdf(data, s):
     if bs:
         def bv(key): return (bs.get(key,{}) or {}).get("current",0) or 0
         def bvp(key): return (bs.get(key,{}) or {}).get("prior",0) or 0
-
+        page_hdr("Bilan non consolidé", str(s.get("period_end","")) + ", avec informations comparatives de " + str(data.get("prior_year", s.get("prior_year",""))))
         story.append(PageBreak())
         page_hdr(story, "Bilan non consolidé", str(s.get("period_end","")) + ", avec informations comparatives de " + str(data.get("prior_year", s.get("prior_year",""))))
 
