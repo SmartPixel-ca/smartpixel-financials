@@ -685,7 +685,7 @@ def build_pdf(data, s):
         def bvp(key): return (bs.get(key,{}) or {}).get("prior",0) or 0
 
         story.append(PageBreak())
-        page_hdr(story, "Bilan non consolidé", s["period_end"] + ", avec informations comparatives de " + py)
+        page_hdr(story, "Bilan non consolidé", str(s.get("period_end","")) + ", avec informations comparatives de " + str(data.get("prior_year", s.get("prior_year",""))))
 
         bs_rows = [
             # ACTIF
