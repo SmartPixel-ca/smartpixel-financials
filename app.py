@@ -108,26 +108,28 @@ GROUPING = {
     "ann2_credits_rd": {
         "label_fr": "Crédits d'impôt pour la recherche et le développement",
         "label_en": "R&D tax credits",
-        "codes": ["5100601"]
+        "codes": ["5100301","5100501","5100601","5100701"]
     },
     "ann2_salaires_admin": {
         "label_fr": "Salaires et avantages sociaux — ventes et administration",
         "label_en": "Salaries and benefits — sales and administration",
         "codes": ["5000201","5000501","5000601","5000701","5000801",
-                  "5010101","5010301","5011401","5056501"]
+                  "5010101","5010102","5010301","5011101","5011401","5012101","5056501"]
     },
     "ann2_deplacement": {
         "label_fr": "Frais de déplacement", "label_en": "Travel expenses",
         "codes": ["6015601","6016101","6016104","6016201","6016301","6016601",
-                  "6020201","6020301","6020401","6010101","6010201","6010401"]
+                  "6020201","6020301","6020401","6020601",
+                  "6010101","6010201","6010301","6010401",
+                  "6005101","6005102","6005201","6005301","6005401","6005601"]
     },
     "ann2_publicite": {
         "label_fr": "Publicité et promotion", "label_en": "Advertising and promotion",
-        "codes": ["7000201","7005201","7010201","7025601"]
+        "codes": ["7000201","7005201","7010201","7010202","7025601"]
     },
     "ann2_honoraires": {
         "label_fr": "Honoraires", "label_en": "Professional fees",
-        "codes": ["8050501","8050601","8050901","8055601","8060601","8065101","8065301","8065601"]
+        "codes": ["8050501","8050601","8050701","8050801","8050901","8055601","8060601","8065101","8065301","8065601"]
     },
     "ann2_loyer": {
         "label_fr": "Loyer", "label_en": "Rent",
@@ -145,7 +147,15 @@ GROUPING = {
     },
     "ann2_bureau": {
         "label_fr": "Frais de bureau", "label_en": "Office expenses",
-        "codes": ["8150601","8152601","8155601","8200601","5505301","8110601"]
+        "codes": ["8150601","8152601","8155601","8200601","5505301","8110601","9150601"]
+    },
+    "ann2_cotisation": {
+        "label_fr": "Cotisation et abonnement", "label_en": "Dues and subscriptions",
+        "codes": ["8350601"]
+    },
+    "ann2_courrier": {
+        "label_fr": "Courrier et frais postaux", "label_en": "Postage and courier",
+        "codes": ["8100601","8100605"]
     },
     "ann2_assurance": {
         "label_fr": "Assurances", "label_en": "Insurance",
@@ -157,11 +167,11 @@ GROUPING = {
     },
     "ann2_licence": {
         "label_fr": "Licence", "label_en": "Licences",
-        "codes": ["7505601","7510101","7510201","7510601"]
+        "codes": ["7505601","7510101","7510201","7510601","7500701","7500801","7501801"]
     },
     "ann2_paie": {
         "label_fr": "Frais de gestion de paie", "label_en": "Payroll admin fees",
-        "codes": ["8105601"]
+        "codes": ["8105601","8105605"]
     },
     "ann2_fx": {
         "label_fr": "(Gain) Perte de change", "label_en": "Foreign exchange (gain) loss",
@@ -185,9 +195,13 @@ GROUPING = {
         "codes": ["8500601","8500605","8500811"]
     },
     # ANNEXE 4 — Autres revenus
-    "ann4_revenus": {
+    "ann4_aide_gouv": {
+        "label_fr": "Aide gouvernementale", "label_en": "Government assistance",
+        "codes": ["4408801"]
+    },
+    "ann4_autres": {
         "label_fr": "Autres revenus", "label_en": "Other revenue",
-        "codes": ["4400601","4400901","4408801"]
+        "codes": ["4400601","4400901"]
     },
 }
 
@@ -209,7 +223,9 @@ def pct(a,b):
 
 # ── Extraction prompt ─────────────────────────────────────────────────────────
 def build_prompt():
-    return """CRITICAL INSTRUCTION: You must respond with ONLY a valid JSON object. No explanation, no steps, no text before or after the JSON. Start your response with { and end with }. Do not write any words, headers, bullet points or analysis — ONLY the JSON object.\n\nExtract ALL financial data from these QuickBooks PDFs/Excel for Active Média inc. / SmartPixel.
+    return """CRITICAL INSTRUCTION: You must respond with ONLY a valid JSON object. No explanation, no steps, no text before or after the JSON. Start your response with { and end with }. Do not write any words, headers, bullet points or analysis — ONLY the JSON object.
+
+Extract ALL financial data from these QuickBooks PDFs/Excel for Active Média inc. / SmartPixel.
 
 CRITICAL GROUPING RULES — group accounts exactly as follows:
 
@@ -224,31 +240,73 @@ ANNEXE 1 — Coût des ventes:
 - Logiciel: ALL 7500xxx, 7501xxx, 8300xxx, 5100201 in COGS
 
 ANNEXE 2 — Frais d'exploitation:
-- Salaires et avantages sociaux — R&D: 5001501, 5001701, 5001801, 5001901 + their benefits 5015101/201/501/601/701/801 + 5020101/201/601/701/801
-- Crédits d'impôt R&D: 5100601 (will be NEGATIVE)
-- Salaires et avantages sociaux — ventes et admin: 5000201,501,601,701,801 + commissions 5010xxx + 5011xxx + 5056xxx
-- Frais de déplacement: ALL 6015xxx, 6016xxx (excl 6016401), 6020xxx, 6010xxx
+- Salaires et avantages sociaux — R&D: 5001501, 5001701, 5001801, 5001901 + benefits 5015101/201/501/601/701/801 + 5020101/201/601/701/801
+- Crédits d'impôt R&D: 5100301, 5100501, 5100601, 5100701 (all NEGATIVE)
+- Salaires et avantages sociaux — ventes et admin: 5000201,501,601,701,801 + commissions 5010xxx + 5011xxx + 5012xxx + 5056xxx
+- Frais de déplacement: ALL 6015xxx, 6016xxx (excl 6016401), 6020xxx, 6010xxx, 6005xxx (repas)
 - Publicité et promotion: ALL 7000xxx, 7005xxx, 7010xxx, 7025xxx
 - Honoraires: ALL 8050xxx, 8055xxx, 8060xxx, 8065xxx
 - Loyer: 8000xxx, 8010xxx
 - Télécommunications: ALL 8400xxx, 8405xxx, 7515xxx, 7520xxx, 7525xxx
-- Frais de représentation: ALL 6000xxx, 6005xxx, 6100xxx
-- Frais de bureau: 8150xxx, 8152xxx, 8155xxx, 8200xxx, 5505xxx, 8110xxx
+- Frais de représentation: 6000xxx, 6100xxx only
+- Frais de bureau: 8150xxx, 8152xxx, 8155xxx, 8200xxx, 5505xxx, 8110xxx, 9150xxx
+- Cotisation et abonnement: 8350xxx
 - Assurances: 8305xxx
 - Taxes et permis: 8300601
-- Licence: 7505xxx, 7510xxx
+- Licence: 7505xxx, 7510xxx, 7500701, 7500801, 7501801
 - Frais de gestion de paie: 8105xxx
 - (Gain) Perte de change: 8450xxx
 - Intérêts et pénalités: 8460xxx
 - Représentant externe: ALL 5030xxx
+- Courrier: 8100xxx
+
+AMORTISSEMENT: 9000xxx → separate line on P&L
 
 ANNEXE 3 — Frais financiers:
 - Intérêts sur la dette à long terme: 8520xxx, 8515xxx
 - Intérêts et frais bancaires: 8500xxx
 
-AMORTISSEMENT: 9000xxx → separate line on P&L
+ANNEXE 4 — Autres revenus:
+- Aide gouvernementale: 4408xxx only
+- Autres revenus: 4400xxx only
 
-ANNEXE 4 — Autres revenus: ALL 4400xxx, 4408xxx
+BALANCE SHEET groupings — follow the mapping EXACTLY:
+
+ACTIF À COURT TERME:
+- Encaisse: 1055, 1056, 1057, 1058, 1059, 1060, 1075, 1076, 1080, 1090, 1499, 1700, 2641
+  (1065 BMO Autres is deleted — exclude it. 2641 Marge de crédit DesJardins nets against cash as per QuickBooks structure)
+- Comptes clients et autres créances (note 2): 1200, 1201, 1202, 1203, 1205
+- Stocks: 1999
+- Travaux en cours (note 15): 1250, 1251 (1251 Produits perçus d'avance A.R.Tx is netted here)
+- Crédits d'impôt à recevoir: 1210, 1220, 1225, 1226, 1230, 1231, 1232
+- Charges payées d'avance: 1300, 1320
+
+ACTIF À LONG TERME (listed individually on balance sheet, NOT grouped):
+- Dépôts à long terme: 1710 only
+- Frais payés d'avance (LT): 1711 only (show as "-" if zero)
+- Immobilisations corporelles (note 3) — NET value: 1810+1811, 1815+1816, 1820+1821, 1825+1826, 1835+1836, 1840+1841, 1845+1846, 1855+1856, 1891
+- Actifs incorporels (note 4): 1880, 1890
+- Impôts futurs (note 14): 2163
+- Avances à la filiale: 1901, 1903
+- Avances aux actionnaires: 1750
+- Placement dans la filiale (note 5): 1900
+
+PASSIF À COURT TERME:
+- Emprunt bancaire (note 6): 2630, 2635 (show as "-" if zero)
+- Comptes fournisseurs et charges à payer (note 7): 2100, 2101, 2102, 2155, 2136 (all A/P + accruals + credit cards)
+- Impôts sur le bénéfice à payer: 2160, 2161
+- Produits reportés (note 15): 2170, 2180, 2190, 2200, 2205, 2210, 2212, 2234, 2300, 2305,
+  2310, 2315, 2340, 2345, 2350, 2355, 2367, 2455, 2684, 2685, 2686, 2687, 2688,
+  BC Ministry of Finance Payable, BC Ministry of Finance Suspense, PST BC Payable
+- Tranche à court terme de la dette à long terme (note 8): compute from LT loans — current portion
+
+PASSIF À LONG TERME:
+- Avantages incitatifs liés aux baux: 2400
+- Dette à long terme (note 8): 2620, 2621, 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2631, 2680, 2681, 2682, 2683
+
+AVOIR DES ACTIONNAIRES:
+- Capital-actions (note 9): 3350, 3351, 3551, 3570, 3580
+- Déficit: 3560 + Profit for the year (current year net income)
 
 Return ONLY valid JSON:
 {
@@ -312,6 +370,37 @@ Return ONLY valid JSON:
     "aide_gouv": {"current": number, "prior": number},
     "autres": {"current": number, "prior": number},
     "total": {"current": number, "prior": number}
+  },
+  "bs": {
+    "encaisse": {"current": number, "prior": number},
+    "comptes_clients": {"current": number, "prior": number},
+    "stocks": {"current": number, "prior": number},
+    "travaux_en_cours": {"current": number, "prior": number},
+    "credits_impot": {"current": number, "prior": number},
+    "charges_payees_avance": {"current": number, "prior": number},
+    "total_actif_ct": {"current": number, "prior": number},
+    "depots_lt": {"current": number, "prior": number},
+    "frais_payes_avance_lt": {"current": number, "prior": number},
+    "immobilisations": {"current": number, "prior": number},
+    "actifs_incorporels": {"current": number, "prior": number},
+    "impots_futurs": {"current": number, "prior": number},
+    "avances_filiale": {"current": number, "prior": number},
+    "avances_actionnaires": {"current": number, "prior": number},
+    "placement_filiale": {"current": number, "prior": number},
+    "total_actif": {"current": number, "prior": number},
+    "emprunt_bancaire": {"current": number, "prior": number},
+    "comptes_fournisseurs": {"current": number, "prior": number},
+    "impots_benefice": {"current": number, "prior": number},
+    "produits_reportes": {"current": number, "prior": number},
+    "tranche_ct_lt": {"current": number, "prior": number},
+    "total_passif_ct": {"current": number, "prior": number},
+    "avantages_baux": {"current": number, "prior": number},
+    "dette_lt": {"current": number, "prior": number},
+    "total_passif": {"current": number, "prior": number},
+    "capital_actions": {"current": number, "prior": number},
+    "deficit": {"current": number, "prior": number},
+    "total_avoir": {"current": number, "prior": number},
+    "total_passif_avoir": {"current": number, "prior": number}
   }
 }
 Use 0 for missing values. prior year = 0 if only one year available."""
@@ -361,209 +450,293 @@ def extract(files):
                 pass
         raise ValueError(f"Could not parse Claude response as JSON: {e}\n\nRaw response (first 500 chars):\n{raw[:500]}")
 
-# ── PDF Builder — matches reference images exactly ────────────────────────────
+# ── PDF Builder ──────────────────────────────────────────────────────────────
 def build_pdf(data, s):
-    BLACK  = colors.black
-    GREY   = colors.HexColor("#555555")
-    WHITE  = colors.white
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable, KeepTogether
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    from reportlab.lib.pagesizes import letter
+
+    BLACK = colors.black
+    GREY  = colors.HexColor("#666666")
 
     cy = data.get("fiscal_year", s["fiscal_year"])
     py = data.get("prior_year",  s["prior_year"])
+    period_str = f"Exercice clos le {s['period_end']}, avec informations comparatives de {py}"
 
-    def sty(name, size=10, bold=False, color=BLACK, align=TA_LEFT, leading=None):
-        return ParagraphStyle(name+"_"+str(id(name)),
+    def ps(name, size=10, bold=False, color=BLACK, align=TA_LEFT):
+        return ParagraphStyle(name + str(id(name)),
             fontName="Helvetica-Bold" if bold else "Helvetica",
             fontSize=size, textColor=color, alignment=align,
-            leading=leading or size*1.35, spaceAfter=0, spaceBefore=0)
+            leading=size * 1.4, spaceAfter=0, spaceBefore=0)
 
-    co_sty  = sty("co", 18, bold=True)
-    sub_sty = sty("sub", 10)
-    per_sty = sty("per", 9)
-    note_sty= sty("note", 8, color=GREY)
-    ann_sty = sty("ann", 10, bold=True)
+    # Column widths — label takes most space, two equal value columns
+    LW  = 4.2 * inch
+    VW  = 1.35 * inch
+    CW  = [LW, VW, VW]
+    TW  = LW + VW + VW  # total table width
 
-    CW = [3.8*inch, 1.5*inch, 1.5*inch]
+    def hdr_para(text, size=10, bold=False, color=BLACK, align=TA_LEFT):
+        return Paragraph(text, ps("h", size, bold, color, align))
 
-    def page_hdr(story, title, period_str):
-        story.append(Paragraph(s["company_name"].upper(), co_sty))
-        story.append(Paragraph(title, sub_sty))
-        story.append(HRFlowable(width="100%", thickness=1, color=BLACK, spaceAfter=2, spaceBefore=2))
-        story.append(Paragraph(period_str, per_sty))
-        story.append(Spacer(1, 12))
+    def val_para(text, bold=False, color=BLACK):
+        return Paragraph(f'<para alignment="right">{text}</para>',
+            ps("v", 9.5, bold, color, TA_RIGHT))
 
-    def v(obj, key):
-        if not obj: return 0
-        d = obj.get(key, {})
-        if isinstance(d, dict):
-            return d.get("current", 0) or 0
-        return d or 0
+    def lbl_para(text, bold=False, indent=0, color=BLACK):
+        style = ps("l", 9.5, bold, color, TA_LEFT)
+        style.leftIndent = indent
+        return Paragraph(text, style)
 
-    def vp(obj, key):
-        if not obj: return 0
-        d = obj.get(key, {})
-        if isinstance(d, dict):
-            return d.get("prior", 0) or 0
-        return d or 0
+    # Table style base
+    BASE_STYLE = [
+        ('TOPPADDING',    (0,0), (-1,-1), 2),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ('LEFTPADDING',   (0,0), (-1,-1), 0),
+        ('RIGHTPADDING',  (0,0), (-1,-1), 0),
+        ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
+        ('FONTNAME',      (0,0), (-1,-1), 'Helvetica'),
+        ('FONTSIZE',      (0,0), (-1,-1), 9.5),
+    ]
 
     def build_table(rows):
-        # Header
-        tdata = [[
-            Paragraph("", sty("empty",9)),
-            Paragraph(f"<b>{cy}</b>", sty("cy",9,bold=True,align=TA_RIGHT)),
-            Paragraph(f"<b>{py}</b>", sty("py",9,bold=True,align=TA_RIGHT))
-        ]]
-        cmds = [
-            ('LINEBELOW', (0,0),(-1,0), 0.75, BLACK),
-            ('TOPPADDING',(0,0),(-1,-1),2),
-            ('BOTTOMPADDING',(0,0),(-1,-1),2),
-            ('LEFTPADDING',(0,0),(-1,-1),0),
-            ('RIGHTPADDING',(0,0),(-1,-1),0),
-            ('FONTNAME',(0,0),(-1,-1),'Helvetica'),
-            ('FONTSIZE',(0,0),(-1,-1),9.5),
-            ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
-            ('ALIGN',(1,0),(-1,-1),'RIGHT'),
+        """
+        rows: list of (label_cell, v1_cell, v2_cell, style_type)
+        style_type: 'normal'|'indent'|'section'|'subtotal'|'grand'|'blank'
+        """
+        tdata = []
+        cmds  = list(BASE_STYLE)
+
+        # Column header row
+        tdata.append([
+            hdr_para("", 9, False, GREY),
+            val_para(cy, bold=True, color=BLACK),
+            val_para(py, bold=True, color=BLACK),
+        ])
+        cmds += [
+            ('LINEBELOW', (0,0), (-1,0), 0.75, BLACK),
+            ('TOPPADDING', (0,0), (-1,0), 4),
+            ('BOTTOMPADDING', (0,0), (-1,0), 4),
         ]
 
-        for i,(lbl,v1,v2,stype) in enumerate(rows):
-            rn = i+1
-            if stype == "blank":
-                tdata.append([Paragraph("",sty("b",4)),Paragraph("",sty("b2",4)),Paragraph("",sty("b3",4))])
-                cmds.append(('FONTSIZE',(0,rn),(-1,rn),4))
+        for i, (lbl, v1, v2, stype) in enumerate(rows):
+            rn = i + 1
+            if stype == 'blank':
+                tdata.append([Paragraph("", ps("b",3)), Paragraph("",ps("b2",3)), Paragraph("",ps("b3",3))])
+                cmds.append(('FONTSIZE',(0,rn),(-1,rn),3))
+                cmds.append(('TOPPADDING',(0,rn),(-1,rn),1))
+                cmds.append(('BOTTOMPADDING',(0,rn),(-1,rn),1))
                 continue
 
-            if stype == "section":
-                tdata.append([Paragraph(f"<b>{lbl}</b>",sty("s",9.5,bold=True)),"",""])
+            if stype == 'section':
+                tdata.append([lbl_para(lbl, bold=False, color=BLACK), val_para(""), val_para("")])
                 continue
 
-            bold_row = stype in ("total","grand","subtotal")
-            fn = "Helvetica-Bold" if bold_row else "Helvetica"
-            lp = Paragraph(f"<b>{lbl}</b>" if bold_row else lbl, sty("l",9.5,bold=bold_row))
-            v1p= Paragraph(f"<b>{v1}</b>" if bold_row else v1, sty("v1",9.5,bold=bold_row,align=TA_RIGHT))
-            v2p= Paragraph(f"<b>{v2}</b>" if bold_row else v2, sty("v2",9.5,bold=bold_row,align=TA_RIGHT))
-            tdata.append([lp,v1p,v2p])
+            bold_row = stype in ('grand', 'subtotal')
+            tdata.append([lbl, val_para(v1, bold=bold_row), val_para(v2, bold=bold_row)])
 
-            if stype == "grand":
-                cmds.append(('LINEABOVE',(0,rn),(-1,rn),0.75,BLACK))
-                cmds.append(('LINEBELOW',(0,rn),(-1,rn),1.5,BLACK))
-            elif stype in ("total","subtotal"):
-                cmds.append(('LINEABOVE',(0,rn),(-1,rn),0.5,BLACK))
+            if stype == 'grand':
+                cmds += [
+                    ('LINEABOVE', (0,rn), (-1,rn), 0.75, BLACK),
+                    ('LINEBELOW', (0,rn), (-1,rn), 1.5,  BLACK),
+                    ('FONTNAME',  (0,rn), (-1,rn), 'Helvetica-Bold'),
+                ]
+            elif stype == 'subtotal':
+                cmds += [
+                    ('LINEABOVE', (0,rn), (-1,rn), 0.5, BLACK),
+                    ('FONTNAME',  (0,rn), (-1,rn), 'Helvetica-Bold'),
+                ]
 
         t = Table(tdata, colWidths=CW)
         t.setStyle(TableStyle(cmds))
         return t
 
+    def v(obj, key):
+        d = (obj or {}).get(key, {})
+        return (d.get("current", 0) or 0) if isinstance(d, dict) else (d or 0)
+
+    def vp(obj, key):
+        d = (obj or {}).get(key, {})
+        return (d.get("prior", 0) or 0) if isinstance(d, dict) else (d or 0)
+
+    pl = data.get("pl", {}); a1 = data.get("ann1", {})
+    a2 = data.get("ann2", {}); a3 = data.get("ann3", {}); a4 = data.get("ann4", {})
+
     story = []
-    pl  = data.get("pl",{})
-    a1  = data.get("ann1",{})
-    a2  = data.get("ann2",{})
-    a3  = data.get("ann3",{})
-    a4  = data.get("ann4",{})
 
-    period_str = f"Exercice clos le {s['period_end']}, avec informations comparatives de {py}"
+    def page_hdr(title, period):
+        story.append(Paragraph(s["company_name"].upper(), ps("co", 16, bold=True)))
+        story.append(Spacer(1, 2))
+        story.append(Paragraph(title, ps("ti", 10)))
+        story.append(Spacer(1, 2))
+        story.append(HRFlowable(width=TW, thickness=0.75, color=BLACK, spaceAfter=3, spaceBefore=0))
+        story.append(Paragraph(period, ps("pe", 9, color=GREY)))
+        story.append(Spacer(1, 10))
 
-    # ── PAGE 1 — P&L ──────────────────────────────────────────────────────────
-    page_hdr(story, "État non consolidé des résultats", period_str)
+    # ── P&L ───────────────────────────────────────────────────────────────────
+    page_hdr("État non consolidé des résultats", period_str)
 
-    rows = [
-        ("Ventes (notes 11 et 12)", fmt_with_dollar(v(pl,"ventes")), fmt_with_dollar(vp(pl,"ventes")), "normal"),
-        ("", "", "", "blank"),
-        ("Coût des ventes (annexe 1)", fmt_num(v(pl,"cout_des_ventes")), fmt_num(vp(pl,"cout_des_ventes")), "indent"),
-        ("", fmt_num(v(pl,"benefice_brut")), fmt_num(vp(pl,"benefice_brut")), "subtotal"),
-        ("", "", "", "blank"),
+    pl_rows = [
+        (lbl_para("Ventes (notes 11 et 12)"), fmt_with_dollar(v(pl,"ventes")), fmt_with_dollar(vp(pl,"ventes")), "normal"),
+        (lbl_para(""), "", "", "blank"),
+        (lbl_para("Coût des ventes (annexe 1)", indent=12), fmt_num(v(pl,"cout_des_ventes")), fmt_num(vp(pl,"cout_des_ventes")), "normal"),
+        (lbl_para(""), fmt_num(v(pl,"benefice_brut")), fmt_num(vp(pl,"benefice_brut")), "subtotal"),
+        (lbl_para(""), "", "", "blank"),
         ("Charges", "", "", "section"),
-        ("    Frais d'exploitation (annexe 2)", fmt_num(v(pl,"frais_exploitation")), fmt_num(vp(pl,"frais_exploitation")), "indent"),
-        ("    Frais financiers (annexe 3)", fmt_num(v(pl,"frais_financiers")), fmt_num(vp(pl,"frais_financiers")), "indent"),
-        ("    Amortissement des immobilisations corporelles et actifs incorporels",
-         fmt_num(v(pl,"amortissement")), fmt_num(vp(pl,"amortissement")), "indent"),
-        ("", fmt_num(v(pl,"total_charges")), fmt_num(vp(pl,"total_charges")), "subtotal"),
-        ("", "", "", "blank"),
-        ("Bénéfice (perte) avant les autres revenus",
-         fmt_num(v(pl,"benefice_avant_autres")), fmt_num(vp(pl,"benefice_avant_autres")), "normal"),
-        ("", "", "", "blank"),
-        ("Autres revenus (annexe 4)", fmt_num(v(pl,"autres_revenus")), fmt_num(vp(pl,"autres_revenus")), "normal"),
-        ("", "", "", "blank"),
-        ("Bénéfice net (perte nette)", fmt_with_dollar(v(pl,"benefice_net")), fmt_with_dollar(vp(pl,"benefice_net")), "grand"),
+        (lbl_para("    Frais d'exploitation (annexe 2)", indent=20), fmt_num(v(pl,"frais_exploitation")), fmt_num(vp(pl,"frais_exploitation")), "normal"),
+        (lbl_para("    Frais financiers (annexe 3)", indent=20), fmt_num(v(pl,"frais_financiers")), fmt_num(vp(pl,"frais_financiers")), "normal"),
+        (lbl_para("    Amortissement des immobilisations corporelles et actifs incorporels", indent=20), fmt_num(v(pl,"amortissement")), fmt_num(vp(pl,"amortissement")), "normal"),
+        (lbl_para(""), fmt_num(v(pl,"total_charges")), fmt_num(vp(pl,"total_charges")), "subtotal"),
+        (lbl_para(""), "", "", "blank"),
+        (lbl_para("Bénéfice (perte) avant les autres revenus"), fmt_num(v(pl,"benefice_avant_autres")), fmt_num(vp(pl,"benefice_avant_autres")), "normal"),
+        (lbl_para(""), "", "", "blank"),
+        (lbl_para("Autres revenus (annexe 4)"), fmt_num(v(pl,"autres_revenus")), fmt_num(vp(pl,"autres_revenus")), "normal"),
+        (lbl_para(""), "", "", "blank"),
+        (lbl_para("Bénéfice net (perte nette)", bold=True), fmt_with_dollar(v(pl,"benefice_net")), fmt_with_dollar(vp(pl,"benefice_net")), "grand"),
     ]
-    story.append(build_table(rows))
-    story.append(Spacer(1,10))
-    story.append(Paragraph("Se reporter aux notes afférentes aux états financiers.", note_sty))
+    story.append(build_table(pl_rows))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("Se reporter aux notes afférentes aux états financiers.", ps("note", 8, color=GREY)))
     story.append(PageBreak())
 
-    # ── PAGE 2 — ANNEXES 1 & 2 ────────────────────────────────────────────────
-    page_hdr(story, "Annexes", period_str)
+    # ── ANNEXES 1 & 2 ─────────────────────────────────────────────────────────
+    page_hdr("Annexes", period_str)
 
-    story.append(Paragraph("<b>Annexe 1 - Coût des ventes</b>", ann_sty))
-    story.append(Spacer(1,6))
+    story.append(Paragraph("<b>Annexe 1 - Coût des ventes</b>", ps("a1", 10, bold=True)))
+    story.append(Spacer(1, 5))
     ann1_rows = [
-        ("Achats", fmt_with_dollar(v(a1,"achats")), fmt_with_dollar(vp(a1,"achats")), "normal"),
-        ("Salaires et avantages sociaux", fmt_num(v(a1,"salaires")), fmt_num(vp(a1,"salaires")), "normal"),
-        ("Sous-traitance", fmt_num(v(a1,"soustraitance")), fmt_num(vp(a1,"soustraitance")), "normal"),
-        ("Frais de livraison", fmt_num(v(a1,"livraison")), fmt_num(vp(a1,"livraison")), "normal"),
-        ("Logiciel", fmt_num(v(a1,"logiciel")), fmt_num(vp(a1,"logiciel")), "normal"),
-        ("", fmt_with_dollar(v(a1,"total")), fmt_with_dollar(vp(a1,"total")), "grand"),
+        (lbl_para("Achats"), fmt_with_dollar(v(a1,"achats")), fmt_with_dollar(vp(a1,"achats")), "normal"),
+        (lbl_para("Salaires et avantages sociaux"), fmt_num(v(a1,"salaires")), fmt_num(vp(a1,"salaires")), "normal"),
+        (lbl_para("Sous-traitance"), fmt_num(v(a1,"soustraitance")), fmt_num(vp(a1,"soustraitance")), "normal"),
+        (lbl_para("Frais de livraison"), fmt_num(v(a1,"livraison")), fmt_num(vp(a1,"livraison")), "normal"),
+        (lbl_para("Logiciel"), fmt_num(v(a1,"logiciel")), fmt_num(vp(a1,"logiciel")), "normal"),
+        (lbl_para("", bold=True), fmt_with_dollar(v(a1,"total")), fmt_with_dollar(vp(a1,"total")), "grand"),
     ]
     story.append(build_table(ann1_rows))
-    story.append(Spacer(1,16))
+    story.append(Spacer(1, 16))
 
-    story.append(Paragraph("<b>Annexe 2 - Frais d'exploitation</b>", ann_sty))
-    story.append(Spacer(1,6))
+    story.append(Paragraph("<b>Annexe 2 - Frais d'exploitation</b>", ps("a2", 10, bold=True)))
+    story.append(Spacer(1, 5))
 
-    def a2r(fr, key, dollar_first=False):
-        c = v(a2,key); p = vp(a2,key)
-        v1 = fmt_with_dollar(c) if dollar_first else fmt_num(c)
-        v2 = fmt_with_dollar(p) if dollar_first else fmt_num(p)
-        return (fr, v1, v2, "normal")
+    def a2row(label, key):
+        return (lbl_para(label), fmt_num(v(a2,key)), fmt_num(vp(a2,key)), "normal")
 
     ann2_rows = [
-        a2r("Salaires et avantages sociaux - recherche et développement","salaires_rd",True),
-        a2r("Crédits d'impôt pour la recherche et le développement","credits_rd"),
-        a2r("Salaires et avantages sociaux - ventes et administration","salaires_admin"),
-        a2r("Frais de déplacement","deplacement"),
-        a2r("Location d'équipement","location_equip"),
-        a2r("Publicité et promotion","publicite"),
-        a2r("Honoraires","honoraires"),
-        a2r("Loyer","loyer"),
-        a2r("Télécommunications","telecom"),
-        a2r("Frais de représentation","representation"),
-        a2r("Frais de bureau","bureau"),
-        a2r("Cotisation et abonnement","cotisation"),
-        a2r("Assurances","assurance"),
-        a2r("Taxes et permis","taxes"),
-        a2r("Entretien et réparations","entretien"),
-        a2r("Courrier et frais postaux","courrier"),
-        a2r("Dépense de l'avantage incitatifs liés aux baux","lease_incentive"),
-        a2r("Licence","licence"),
-        a2r("Frais de gestion de paie","paie"),
-        a2r("Frais de formation","formation"),
-        a2r("(Gain) Perte de change","fx"),
-        a2r("Intérêts et pénalités","interet_penalites"),
-        a2r("Représentant externe","representant"),
-        ("", fmt_with_dollar(v(a2,"total")), fmt_with_dollar(vp(a2,"total")), "grand"),
+        (lbl_para("Salaires et avantages sociaux - recherche et développement"), fmt_with_dollar(v(a2,"salaires_rd")), fmt_with_dollar(vp(a2,"salaires_rd")), "normal"),
+        a2row("Crédits d'impôt pour la recherche et le développement", "credits_rd"),
+        a2row("Salaires et avantages sociaux - ventes et administration", "salaires_admin"),
+        a2row("Frais de déplacement", "deplacement"),
+        a2row("Location d'équipement", "location_equip"),
+        a2row("Publicité et promotion", "publicite"),
+        a2row("Honoraires", "honoraires"),
+        a2row("Loyer", "loyer"),
+        a2row("Télécommunications", "telecom"),
+        a2row("Frais de représentation", "representation"),
+        a2row("Frais de bureau", "bureau"),
+        a2row("Cotisation et abonnement", "cotisation"),
+        a2row("Assurances", "assurance"),
+        a2row("Taxes et permis", "taxes"),
+        a2row("Entretien et réparations", "entretien"),
+        a2row("Courrier et frais postaux", "courrier"),
+        a2row("Dépense de l'avantage incitatifs liés aux baux", "lease_incentive"),
+        a2row("Licence", "licence"),
+        a2row("Frais de gestion de paie", "paie"),
+        a2row("Frais de formation", "formation"),
+        a2row("(Gain) Perte de change", "fx"),
+        a2row("Intérêts et pénalités", "interet_penalites"),
+        a2row("Représentant externe", "representant"),
+        (lbl_para("", bold=True), fmt_with_dollar(v(a2,"total")), fmt_with_dollar(vp(a2,"total")), "grand"),
     ]
     story.append(build_table(ann2_rows))
     story.append(PageBreak())
 
-    # ── PAGE 3 — ANNEXES 3 & 4 ────────────────────────────────────────────────
-    page_hdr(story, "Annexes (suite)", period_str)
+    # ── ANNEXES 3 & 4 ─────────────────────────────────────────────────────────
+    page_hdr("Annexes (suite)", period_str)
 
-    story.append(Paragraph("<b>Annexe 3 - Frais financiers</b>", ann_sty))
-    story.append(Spacer(1,6))
+    story.append(Paragraph("<b>Annexe 3 - Frais financiers</b>", ps("a3", 10, bold=True)))
+    story.append(Spacer(1, 5))
     ann3_rows = [
-        ("Intérêts sur la dette à long terme", fmt_with_dollar(v(a3,"interet_lt")), fmt_with_dollar(vp(a3,"interet_lt")), "normal"),
-        ("Intérêts et frais bancaires", fmt_num(v(a3,"frais_bancaires")), fmt_num(vp(a3,"frais_bancaires")), "normal"),
-        ("", fmt_with_dollar(v(a3,"total")), fmt_with_dollar(vp(a3,"total")), "grand"),
+        (lbl_para("Intérêts sur la dette à long terme"), fmt_with_dollar(v(a3,"interet_lt")), fmt_with_dollar(vp(a3,"interet_lt")), "normal"),
+        (lbl_para("Intérêts et frais bancaires"), fmt_num(v(a3,"frais_bancaires")), fmt_num(vp(a3,"frais_bancaires")), "normal"),
+        (lbl_para("", bold=True), fmt_with_dollar(v(a3,"total")), fmt_with_dollar(vp(a3,"total")), "grand"),
     ]
     story.append(build_table(ann3_rows))
-    story.append(Spacer(1,20))
+    story.append(Spacer(1, 20))
 
-    story.append(Paragraph("<b>Annexe 4 - Autres revenus</b>", ann_sty))
-    story.append(Spacer(1,6))
+    story.append(Paragraph("<b>Annexe 4 - Autres revenus</b>", ps("a4", 10, bold=True)))
+    story.append(Spacer(1, 5))
     ann4_rows = [
-        ("Aide gouvernementale (note 15 b))", fmt_with_dollar(v(a4,"aide_gouv")), fmt_with_dollar(vp(a4,"aide_gouv")), "normal"),
-        ("Autres revenus", fmt_num(v(a4,"autres")), fmt_num(vp(a4,"autres")), "normal"),
-        ("", fmt_with_dollar(v(a4,"total")), fmt_with_dollar(vp(a4,"total")), "grand"),
+        (lbl_para("Aide gouvernementale (note 15 b))"), fmt_with_dollar(v(a4,"aide_gouv")), fmt_with_dollar(vp(a4,"aide_gouv")), "normal"),
+        (lbl_para("Autres revenus"), fmt_num(v(a4,"autres")), fmt_num(vp(a4,"autres")), "normal"),
+        (lbl_para("", bold=True), fmt_with_dollar(v(a4,"total")), fmt_with_dollar(vp(a4,"total")), "grand"),
     ]
     story.append(build_table(ann4_rows))
+
+    # ── BALANCE SHEET ─────────────────────────────────────────────────────────
+    bs = data.get("bs", {})
+    if bs:
+        def bv(key): return (bs.get(key,{}) or {}).get("current",0) or 0
+        def bvp(key): return (bs.get(key,{}) or {}).get("prior",0) or 0
+
+        story.append(PageBreak())
+        page_hdr(story, "Bilan non consolidé", f"31 {s['period_end']}, avec informations comparatives de {py}")
+
+        bs_rows = [
+            # ACTIF
+            (lbl_para("Actif"), "", "", "section"),
+            (lbl_para(""), "", "", "blank"),
+            (lbl_para("Actif à court terme", bold=False), "", "", "section"),
+            (lbl_para("    Encaisse", indent=20),               fmt_with_dollar(bv("encaisse")),           fmt_with_dollar(bvp("encaisse")),           "normal"),
+            (lbl_para("    Comptes clients et autres créances (note 2)", indent=20), fmt_num(bv("comptes_clients")), fmt_num(bvp("comptes_clients")), "normal"),
+            (lbl_para("    Stocks", indent=20),                 fmt_num(bv("stocks")),                     fmt_num(bvp("stocks")),                     "normal"),
+            (lbl_para("    Travaux en cours (note 15)", indent=20), fmt_num(bv("travaux_en_cours")),       fmt_num(bvp("travaux_en_cours")),           "normal"),
+            (lbl_para("    Crédits d'impôt à recevoir", indent=20), fmt_num(bv("credits_impot")),        fmt_num(bvp("credits_impot")),              "normal"),
+            (lbl_para("    Charges payées d'avance", indent=20), fmt_num(bv("charges_payees_avance")),   fmt_num(bvp("charges_payees_avance")),      "normal"),
+            (lbl_para(""),                                       fmt_num(bv("total_actif_ct")),             fmt_num(bvp("total_actif_ct")),             "subtotal"),
+            (lbl_para(""), "", "", "blank"),
+            (lbl_para("Dépôts à long terme"),                   fmt_num(bv("depots_lt")),                  fmt_num(bvp("depots_lt")),                  "normal"),
+            (lbl_para("Frais payés d'avance"),                 fmt_num(bv("frais_payes_avance_lt")),      fmt_num(bvp("frais_payes_avance_lt")),      "normal"),
+            (lbl_para("Immobilisations corporelles (note 3)"),  fmt_num(bv("immobilisations")),            fmt_num(bvp("immobilisations")),            "normal"),
+            (lbl_para("Actifs incorporels (note 4)"),           fmt_num(bv("actifs_incorporels")),         fmt_num(bvp("actifs_incorporels")),         "normal"),
+            (lbl_para("Impôts futurs (note 14)"),               fmt_num(bv("impots_futurs")),              fmt_num(bvp("impots_futurs")),              "normal"),
+            (lbl_para("Avances à la filiale, sans intérêt ni modalités de d'encaissement"), fmt_num(bv("avances_filiale")), fmt_num(bvp("avances_filiale")), "normal"),
+            (lbl_para("Avances aux actionnaires, sans intérêt\nni modalités de d'encaissement"), fmt_num(bv("avances_actionnaires")), fmt_num(bvp("avances_actionnaires")), "normal"),
+            (lbl_para("Placement dans la filiale (note 5)"),    fmt_num(bv("placement_filiale")),          fmt_num(bvp("placement_filiale")),          "normal"),
+            (lbl_para(""), "", "", "blank"),
+            (lbl_para("", bold=True),                           fmt_with_dollar(bv("total_actif")),        fmt_with_dollar(bvp("total_actif")),        "grand"),
+            (lbl_para(""), "", "", "blank"),
+            # PASSIF
+            (lbl_para("Passif et avoir des actionnaires"), "", "", "section"),
+            (lbl_para(""), "", "", "blank"),
+            (lbl_para("Passif à court terme", bold=False), "", "", "section"),
+            (lbl_para("    Emprunt bancaire (note 6)", indent=20), fmt_with_dollar(bv("emprunt_bancaire")), fmt_with_dollar(bvp("emprunt_bancaire")), "normal"),
+            (lbl_para("    Comptes fournisseurs et charges à payer (note 7)", indent=20), fmt_num(bv("comptes_fournisseurs")), fmt_num(bvp("comptes_fournisseurs")), "normal"),
+            (lbl_para("    Impôts sur le bénéfice à payer", indent=20), fmt_num(bv("impots_benefice")),   fmt_num(bvp("impots_benefice")),            "normal"),
+            (lbl_para("    Produits reportés (note 15)", indent=20), fmt_num(bv("produits_reportes")),     fmt_num(bvp("produits_reportes")),          "normal"),
+            (lbl_para("    Tranche à court terme de la dette à long terme (note 8)", indent=20), fmt_num(bv("tranche_ct_lt")), fmt_num(bvp("tranche_ct_lt")), "normal"),
+            (lbl_para(""),                                       fmt_num(bv("total_passif_ct")),            fmt_num(bvp("total_passif_ct")),            "subtotal"),
+            (lbl_para(""), "", "", "blank"),
+            (lbl_para("Avantages incitatifs liés aux baux"),    fmt_num(bv("avantages_baux")),             fmt_num(bvp("avantages_baux")),             "normal"),
+            (lbl_para("Dette à long terme (note 8)"),           fmt_num(bv("dette_lt")),                   fmt_num(bvp("dette_lt")),                   "normal"),
+            (lbl_para(""),                                       fmt_num(bv("total_passif")),               fmt_num(bvp("total_passif")),               "subtotal"),
+            (lbl_para(""), "", "", "blank"),
+            # EQUITY
+            (lbl_para("Avoir des actionnaires"), "", "", "section"),
+            (lbl_para("    Capital-actions (note 9)", indent=20), fmt_num(bv("capital_actions")),          fmt_num(bvp("capital_actions")),            "normal"),
+            (lbl_para("    Déficit", indent=20),                fmt_num(bv("deficit")),                    fmt_num(bvp("deficit")),                    "normal"),
+            (lbl_para(""),                                       fmt_num(bv("total_avoir")),                fmt_num(bvp("total_avoir")),                "subtotal"),
+            (lbl_para(""), "", "", "blank"),
+            (lbl_para("Engagements (note 13)"), "", "", "normal"),
+            (lbl_para(""), "", "", "blank"),
+            (lbl_para("", bold=True),                           fmt_with_dollar(bv("total_passif_avoir")), fmt_with_dollar(bvp("total_passif_avoir")), "grand"),
+        ]
+        story.append(build_table(bs_rows))
+        story.append(Spacer(1,10))
+        story.append(Paragraph("Se reporter aux notes afférentes aux états financiers.", ps("note",8,color=GREY)))
+        story.append(Spacer(1,8))
+        story.append(Paragraph("Au nom du conseil,", ps("conseil",9,color=GREY)))
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=letter,
@@ -793,8 +966,9 @@ if "data_v3" in st.session_state:
         cls="kpi-pos" if np_>=0 else "kpi-neg"
         st.markdown(f'<div class="kpi-card"><div class="kpi-label">Net profit</div><div class="kpi-value {cls}">{fmt_num(np_)}</div><div class="kpi-sub">Margin {pct(np_,rev)}</div></div>',unsafe_allow_html=True)
     with c4:
-        opex=gv("frais_exploitation")
-        st.markdown(f'<div class="kpi-card"><div class="kpi-label">OpEx</div><div class="kpi-value">{fmt_num(opex)}</div></div>',unsafe_allow_html=True)
+        bs = data.get("bs", {})
+        ta = (bs.get("total_actif",{}) or {}).get("current",0) if bs else 0
+        st.markdown(f'<div class="kpi-card"><div class="kpi-label">Total actif</div><div class="kpi-value">{fmt_num(ta,True)}</div></div>',unsafe_allow_html=True)
 
     st.markdown("---")
     col1,col2=st.columns(2)
