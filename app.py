@@ -495,7 +495,8 @@ def build_pdf(data, s):
     def lbl_para(text, bold=False, indent=0, color=BLACK):
         style = ps("l", 9.5, bold, color, TA_LEFT)
         style.leftIndent = indent
-        return Paragraph(text, style)
+        safe = str(text).replace("\xa0", " ").replace("\x00", "") if text is not None else ""
+        return Paragraph(safe, style)
 
     # Table style base
     BASE_STYLE = [
