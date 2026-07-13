@@ -101,7 +101,7 @@ GROUPING = {
     "ann2_salaires_rd": {
         "label_fr": "Salaires et avantages sociaux — recherche et développement",
         "label_en": "Salaries and benefits — research and development",
-        "codes": ["5001501","5001701","5001801","5001901",
+        "codes": ["5001501","5001701","5001801","5001901","5056501",
                   "5015101","5015201","5015501","5015601","5015701","5015801",
                   "5020101","5020201","5020601","5020701","5020801"]
     },
@@ -114,14 +114,15 @@ GROUPING = {
         "label_fr": "Salaires et avantages sociaux — ventes et administration",
         "label_en": "Salaries and benefits — sales and administration",
         "codes": ["5000201","5000501","5000601","5000701","5000801",
-                  "5010101","5010102","5010301","5011101","5011401","5012101","5056501"]
+                  "5010101","5010102","5010301","5011101","5011401","5012101","6100201"]
     },
     "ann2_deplacement": {
         "label_fr": "Frais de déplacement", "label_en": "Travel expenses",
         "codes": ["6015601","6016101","6016104","6016201","6016301","6016601",
                   "6020201","6020301","6020401","6020601",
                   "6010101","6010201","6010301","6010401",
-                  "6005101","6005102","6005201","6005301","6005401","6005601"]
+                  "6005101","6005102","6005201","6005301","6005401","6005601",
+                  "8010601"]
     },
     "ann2_publicite": {
         "label_fr": "Publicité et promotion", "label_en": "Advertising and promotion",
@@ -133,7 +134,7 @@ GROUPING = {
     },
     "ann2_loyer": {
         "label_fr": "Loyer", "label_en": "Rent",
-        "codes": ["8000601","8010601"]
+        "codes": ["8000601"]
     },
     "ann2_telecom": {
         "label_fr": "Télécommunications", "label_en": "Telecommunications",
@@ -169,13 +170,17 @@ GROUPING = {
         "label_fr": "Licence", "label_en": "Licences",
         "codes": ["7505601","7510101","7510201","7510601","7500701","7500801","7501801"]
     },
+    "ann2_entretien": {
+        "label_fr": "Entretien et réparations", "label_en": "Maintenance and repairs",
+        "codes": ["8200601"]
+    },
     "ann2_paie": {
         "label_fr": "Frais de gestion de paie", "label_en": "Payroll admin fees",
         "codes": ["8105601","8105605"]
     },
     "ann2_fx": {
         "label_fr": "(Gain) Perte de change", "label_en": "Foreign exchange (gain) loss",
-        "codes": ["8450601"]
+        "codes": ["8450601","5830"]
     },
     "ann2_interet": {
         "label_fr": "Intérêts et pénalités", "label_en": "Interest and penalties",
@@ -188,16 +193,16 @@ GROUPING = {
     # ANNEXE 3 — Frais financiers
     "ann3_interet_lt": {
         "label_fr": "Intérêts sur la dette à long terme", "label_en": "Interest on long-term debt",
-        "codes": ["8520601","8520801","8515601"]
+        "codes": ["8520601","8520801","8510701"]
     },
     "ann3_frais_bancaires": {
         "label_fr": "Intérêts et frais bancaires", "label_en": "Bank charges and interest",
-        "codes": ["8500601","8500605","8500811"]
+        "codes": ["8500601","8500605","8500811","8515601"]
     },
     # ANNEXE 4 — Autres revenus
     "ann4_aide_gouv": {
         "label_fr": "Aide gouvernementale", "label_en": "Government assistance",
-        "codes": ["4408801"]
+        "codes": ["4408801","4405601","4407801"]
     },
     "ann4_autres": {
         "label_fr": "Autres revenus", "label_en": "Other revenue",
@@ -240,22 +245,22 @@ ANNEXE 1 — Coût des ventes:
 - Logiciel: ALL 7500xxx, 7501xxx, 8300xxx, 5100201 in COGS
 
 ANNEXE 2 — Frais d'exploitation:
-- Salaires et avantages sociaux — R&D: 5001501, 5001701, 5001801, 5001901 + benefits 5015101/201/501/601/701/801 + 5020101/201/601/701/801
+- Salaires et avantages sociaux — R&D: 5001501, 5001701, 5001801, 5001901, 5056501 + benefits 5015101/201/501/601/701/801 + 5020101/201/601/701/801
 - Crédits d'impôt R&D: 5100301, 5100501, 5100601, 5100701 (all NEGATIVE)
-- Salaires et avantages sociaux — ventes et admin: 5000201,501,601,701,801 + commissions 5010xxx + 5011xxx + 5012xxx + 5056xxx
-- Frais de déplacement: ALL 6015xxx, 6016xxx (excl 6016401), 6020xxx, 6010xxx, 6005xxx (repas)
+- Salaires et avantages sociaux — ventes et admin: 5000201,501,601,701,801 + commissions 5010xxx + 5011xxx + 5012xxx + 6100201 (comité social)
+- Frais de déplacement: ALL 6015xxx, 6016xxx (excl 6016401), 6020xxx, 6010xxx, 6005xxx (repas), 8010601 (stationnement)
 - Publicité et promotion: ALL 7000xxx, 7005xxx, 7010xxx, 7025xxx
 - Honoraires: ALL 8050xxx, 8055xxx, 8060xxx, 8065xxx
-- Loyer: 8000xxx, 8010xxx
+- Loyer: 8000601 only (8010601 stationnement goes in déplacement)
 - Télécommunications: ALL 8400xxx, 8405xxx, 7515xxx, 7520xxx, 7525xxx
-- Frais de représentation: 6000xxx, 6100xxx only
+- Frais de représentation: 6000xxx, 6100101 only (NOT 6100201 — that goes in salaires ventes et admin)
 - Frais de bureau: 8150xxx, 8152xxx, 8155xxx, 8200xxx, 5505xxx, 8110xxx, 9150xxx
 - Cotisation et abonnement: 8350xxx
 - Assurances: 8305xxx
 - Taxes et permis: 8300601
 - Licence: 7505xxx, 7510xxx, 7500701, 7500801, 7501801
 - Frais de gestion de paie: 8105xxx
-- (Gain) Perte de change: 8450xxx
+- (Gain) Perte de change: 8450xxx, 5830 (Gain/Perte sur change)
 - Intérêts et pénalités: 8460xxx
 - Représentant externe: ALL 5030xxx
 - Courrier: 8100xxx
@@ -263,11 +268,11 @@ ANNEXE 2 — Frais d'exploitation:
 AMORTISSEMENT: 9000xxx → separate line on P&L
 
 ANNEXE 3 — Frais financiers:
-- Intérêts sur la dette à long terme: 8520xxx, 8515xxx
-- Intérêts et frais bancaires: 8500xxx
+- Intérêts sur la dette à long terme: 8520xxx, 8510701 (intérêt marge de crédit)
+- Intérêts et frais bancaires: 8500xxx, 8515601 (intérêt carte crédit)
 
 ANNEXE 4 — Autres revenus:
-- Aide gouvernementale: 4408xxx only
+- Aide gouvernementale: 4408xxx, 4405601, 4407801
 - Autres revenus: 4400xxx only
 
 BALANCE SHEET groupings — follow the mapping EXACTLY:
@@ -640,7 +645,6 @@ def build_pdf(data, s):
         a2row("Taxes et permis", "taxes"),
         a2row("Entretien et réparations", "entretien"),
         a2row("Courrier et frais postaux", "courrier"),
-        a2row("Dépense de l'avantage incitatifs liés aux baux", "lease_incentive"),
         a2row("Licence", "licence"),
         a2row("Frais de gestion de paie", "paie"),
         a2row("Frais de formation", "formation"),
