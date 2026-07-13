@@ -480,8 +480,8 @@ def build_pdf(data, s):
             leading=size * 1.4, spaceAfter=0, spaceBefore=0)
 
     # Column widths — label takes most space, two equal value columns
-    LW  = 4.2 * inch
-    VW  = 1.35 * inch
+    LW  = 4.0 * inch
+    VW  = 1.3 * inch
     CW  = [LW, VW, VW]
     TW  = LW + VW + VW  # total table width
 
@@ -538,12 +538,17 @@ def build_pdf(data, s):
                 cmds.append(('BOTTOMPADDING',(0,rn),(-1,rn),1))
                 continue
 
+            # Label may already be a Paragraph (built via lbl_para by the caller)
+            # or a plain string — never re-wrap an existing Paragraph, since
+            # str(Paragraph(...)) prints its Python repr instead of its text.
+            lbl_cell = lbl if isinstance(lbl, Paragraph) else lbl_para(lbl)
+
             if stype == 'section':
-                tdata.append([lbl_para(lbl, bold=False, color=BLACK), val_para(""), val_para("")])
+                tdata.append([lbl_cell, val_para(""), val_para("")])
                 continue
 
             bold_row = stype in ('grand', 'subtotal')
-            tdata.append([lbl, val_para(v1, bold=bold_row), val_para(v2, bold=bold_row)])
+            tdata.append([lbl_cell, val_para(v1, bold=bold_row), val_para(v2, bold=bold_row)])
 
             if stype == 'grand':
                 cmds += [
