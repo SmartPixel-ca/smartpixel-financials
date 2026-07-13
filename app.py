@@ -968,7 +968,7 @@ if "data_v3" in st.session_state:
     with c4:
         bs = data.get("bs", {})
         ta = (bs.get("total_actif",{}) or {}).get("current",0) if bs else 0
-        st.markdown(f'<div class="kpi-card"><div class="kpi-label">Total actif</div><div class="kpi-value">{fmt_num(ta,True)}</div></div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-card"><div class="kpi-label">Total actif</div><div class="kpi-value">{fmt_num(ta)}</div></div>',unsafe_allow_html=True)
 
     st.markdown("---")
     col1,col2=st.columns(2)
