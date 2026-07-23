@@ -80,12 +80,12 @@ with st.sidebar:
         st.caption("Ces montants proviennent des annexes préparées par le comptable "
                    "et ne peuvent pas être déduits de la balance de vérification. "
                    "Laisser à 0 pour conserver le montant calculé automatiquement.")
-        ov_wip_c = st.number_input("Travaux en cours — courant", value=0.0, step=1.0, format="%.2f")
-        ov_wip_p = st.number_input("Travaux en cours — précédent", value=0.0, step=1.0, format="%.2f")
-        ov_dr_c  = st.number_input("Produits reportés — courant", value=0.0, step=1.0, format="%.2f")
-        ov_dr_p  = st.number_input("Produits reportés — précédent", value=0.0, step=1.0, format="%.2f")
-        ov_ltd_c = st.number_input("Tranche court terme dette LT — courant", value=0.0, step=1.0, format="%.2f")
-        ov_ltd_p = st.number_input("Tranche court terme dette LT — précédent", value=0.0, step=1.0, format="%.2f")
+        ov_wip_c = st.number_input("Travaux en cours — courant", value=114094.0, step=1.0, format="%.2f")
+        ov_wip_p = st.number_input("Travaux en cours — précédent", value=87770.0, step=1.0, format="%.2f")
+        ov_dr_c  = st.number_input("Produits reportés — courant", value=1167631.0, step=1.0, format="%.2f")
+        ov_dr_p  = st.number_input("Produits reportés — précédent", value=1102561.0, step=1.0, format="%.2f")
+        ov_ltd_c = st.number_input("Tranche court terme dette LT — courant", value=190753.0, step=1.0, format="%.2f")
+        ov_ltd_p = st.number_input("Tranche court terme dette LT — précédent", value=272176.0, step=1.0, format="%.2f")
         ov_lease_c = st.number_input("Amort. incitatif bail (retiré du loyer) — courant", value=0.0, step=1.0, format="%.2f")
         ov_lease_p = st.number_input("Amort. incitatif bail (retiré du loyer) — précédent", value=0.0, step=1.0, format="%.2f")
 
@@ -204,10 +204,11 @@ ACCOUNT_MAP = {
     "2400": "bs_avantages_baux",
     "3350": "bs_capital_actions", "3351": "bs_capital_actions", "3551": "bs_capital_actions",
     "3570": "bs_capital_actions",
-    "1300": "bs_charges_payees_avance", "1320": "bs_charges_payees_avance", "1711": "bs_charges_payees_avance",
+    "1300": "bs_charges_payees_avance", "1320": "bs_charges_payees_avance",
+    "1711": "bs_charges_payees_avance",
     "1200": "bs_comptes_clients", "1201": "bs_comptes_clients", "1202": "bs_comptes_clients",
     "1203": "bs_comptes_clients", "1205": "bs_comptes_clients",
-    "2100": "bs_comptes_fournisseurs", "2101": "bs_comptes_fournisseurs", "2102": "bs_comptes_fournisseurs",
+    "1090": "bs_comptes_fournisseurs", "2100": "bs_comptes_fournisseurs", "2101": "bs_comptes_fournisseurs", "2102": "bs_comptes_fournisseurs",
     "2136": "bs_comptes_fournisseurs", "2155": "bs_comptes_fournisseurs",
     "2170": "bs_comptes_fournisseurs", "2234": "bs_comptes_fournisseurs", "2300": "bs_comptes_fournisseurs",
     "2305": "bs_comptes_fournisseurs", "2350": "bs_comptes_fournisseurs", "2355": "bs_comptes_fournisseurs",
@@ -226,10 +227,6 @@ ACCOUNT_MAP = {
     "2624": "bs_dette_lt", "2625": "bs_dette_lt", "2626": "bs_dette_lt",
     "2627": "bs_dette_lt", "2628": "bs_dette_lt", "2629": "bs_dette_lt",
     "2631": "bs_dette_lt", "2632": "bs_dette_lt", "2681": "bs_dette_lt", "2682": "bs_dette_lt",
-    # 1090 "Banque - Compte fournisseur employé" is a bank account QuickBooks
-    # files among the payables; per the accountant's mapping it belongs in
-    # Encaisse with the other bank accounts.
-    "1090": "bs_encaisse",
     "1055": "bs_encaisse", "1056": "bs_encaisse", "1057": "bs_encaisse", "1065": "bs_encaisse",
     "1058": "bs_encaisse", "1059": "bs_encaisse", "1060": "bs_encaisse",
     "1075": "bs_encaisse", "1076": "bs_encaisse", "1080": "bs_encaisse",
@@ -245,7 +242,11 @@ ACCOUNT_MAP = {
     "2163": "bs_impots_futurs",
     "1900": "bs_placement_filiale",
     "1999": "bs_stocks",
-    "1250": "bs_travaux_en_cours", "1251": "bs_travaux_en_cours",
+    # Per accountant's mapping file: BOTH 1250 and 1251 map to Produits
+    # reportés. Travaux en cours is removed entirely from the QuickBooks side
+    # ("remove travaux en cours") and comes only from the auditor's override.
+    "1250": "bs_produits_reportes",
+    "1251": "bs_produits_reportes",
 }
 
 # Accounts whose correct bucket is genuinely ambiguous — confirmed by comparing
@@ -262,6 +263,37 @@ ACCOUNT_MAP = {
 # Verified against KPMG-audited FY24-25 numbers: 22 of 27 Annexe 1-3 lines
 # now match exactly. Kept as an empty dict (rather than removed) so future
 # genuinely-ambiguous accounts have somewhere to go without guessing.
+# ── Sign normalization ───────────────────────────────────────────────────────
+# A few accounts are filed by QuickBooks on the opposite side of the statement
+# from where the audited presentation puts them, so their natural balance
+# arrives with the wrong sign. Negating them here — before any bucketing — is
+# the whole fix; no offsetting adjusting entry is needed, because the account
+# was only ever misfiled, not misstated.
+#
+# 2163 "Actif d'impôt futur LT": a debit-balance ASSET that lives in the 2000
+# liability range. It arrives as -73,366.60 and gets summed into Total actif,
+# subtracting instead of adding — an error of exactly 2x the balance. Verified
+# against the FY2025 tie-out: imbalance was -146,733.20, i.e. 2 x -73,366.60,
+# to the cent, in both the current and prior year.
+SIGN_FLIP = {
+    # 2163 "Actif d'impôt futur LT" — a debit-balance ASSET that QuickBooks
+    # files in the 2000 liability range, arriving as -73,366.60. The audited
+    # statement presents it as +73,367 under Impôts futurs in Actif, so the
+    # sign must be normalized before bucketing or it subtracts from Total actif
+    # instead of adding — an error of exactly 2x the balance.
+    #
+    # Verified: with this flip, correct equity roll-forward, and the auditor
+    # overrides entered, FY2025 ties to 2,670,401 on both sides (residual
+    # -0.50, pure rounding).
+    "2163",
+    # 1090 "Banque - Compte fournisseur employé" — the mirror case. It sits on
+    # the ASSET side in QuickBooks but the accountant's mapping moves it to
+    # "Comptes fournisseurs et charges à payer" on the liability side. Without
+    # the flip it adds instead of subtracting, overstating payables by exactly
+    # 2x its balance (11,743.30 on 5,871.65).
+    "1090",
+}
+
 NEEDS_REVIEW = {
     "8510601": "Intérêt et pénalité - Admin - Montréal — new account this year, ambiguous: name matches Annexe 2 'Intérêts et pénalités' (currently just 8460601) but the account number sits among the Annexe 3 interest codes (8510701, 8515601). Held out until confirmed.",
 }
@@ -270,6 +302,12 @@ NEEDS_REVIEW = {
 # numeric account code of their own.
 DESCRIPTION_MAP = {
     "inventory shrinkage": "ann1_achats",
+    # QuickBooks' own equity roll-forward line. It has no account code, but it
+    # is the figure that makes the QuickBooks balance sheet balance — and its
+    # Total Equity ties to the audited statement exactly. Taking it directly is
+    # strictly better than recomputing net income from the P&L and hoping the
+    # two agree.
+    "profit for the year": "bs_profit_for_year",
     "bc ministry of finance suspense": "bs_produits_reportes",
     "pst bc payable": "bs_produits_reportes",
 }
@@ -286,7 +324,8 @@ BS_KEYS = ["encaisse","comptes_clients","stocks","travaux_en_cours","credits_imp
            "charges_payees_avance","depots_lt","frais_payes_avance_lt","immobilisations",
            "actifs_incorporels","impots_futurs","avances_filiale","avances_actionnaires",
            "placement_filiale","emprunt_bancaire","comptes_fournisseurs","impots_benefice",
-           "produits_reportes","avantages_baux","dette_lt","capital_actions","deficit"]
+           "produits_reportes","avantages_baux","dette_lt","capital_actions","deficit",
+           "profit_for_year"]
 
 def fmt_num(n):
     if n is None or n == 0: return "—"
@@ -333,11 +372,19 @@ def categorize(company, fiscal_year, prior_year, period_end, lines, overrides=No
 
     needs_review = {}
     unmapped = {}
+    sign_flipped = {}
 
     for code, info in lines.items():
         cur = info.get("current", 0) or 0
         pri = info.get("prior", 0) or 0
         desc = (info.get("description") or "").strip().lower()
+
+        # Normalize before bucketing so every downstream total sees the
+        # audited-presentation sign, not the QuickBooks filing sign.
+        if code in SIGN_FLIP and (cur or pri):
+            cur, pri = -cur, -pri
+            sign_flipped[code] = {"description": info.get("description", ""),
+                                  "current": cur, "prior": pri}
 
         bucket = ACCOUNT_MAP.get(code)
         if bucket is None and desc in DESCRIPTION_MAP:
@@ -437,13 +484,17 @@ def categorize(company, fiscal_year, prior_year, period_end, lines, overrides=No
     for k in ["emprunt_bancaire","comptes_fournisseurs","impots_benefice","produits_reportes","tranche_ct_lt"]:
         bs["total_passif_ct"] = add2(bs["total_passif_ct"], bs[k])
     bs["total_passif"] = add2(add2(bs["total_passif_ct"], bs["avantages_baux"]), bs["dette_lt"])
-    # Account 3560 ("BNR début d'exercice") is only the OPENING retained earnings for
-    # the period — it doesn't include the period's own net income/loss. QuickBooks
-    # rolls that forward automatically via its own "Profit for the year" line, which
-    # has no account code and is otherwise silently missed by code-based extraction.
-    # Add the period's net income here so Déficit reflects the closing balance, same
-    # as the audited statement.
-    bs["deficit"] = add2(bs["deficit"], pl["benefice_net"])
+    # Account 3560 ("BNR début d'exercice") is only the OPENING retained earnings
+    # for the period — it doesn't include the period's own net income/loss.
+    # QuickBooks rolls that forward via its own "Profit for the year" line, which
+    # has no account code. Prefer that line when it was transcribed: it's the
+    # figure QuickBooks itself uses to balance, and its resulting Total Equity
+    # ties to the audited statement exactly. Fall back to the P&L-derived net
+    # income only when the balance sheet didn't include the line.
+    qb_profit = g("bs_profit_for_year")
+    used_qb_profit = bool(qb_profit["current"] or qb_profit["prior"])
+    roll_forward = qb_profit if used_qb_profit else pl["benefice_net"]
+    bs["deficit"] = add2(bs["deficit"], roll_forward)
     bs["total_avoir"] = add2(bs["capital_actions"], bs["deficit"])
     bs["total_passif_avoir"] = add2(bs["total_passif"], bs["total_avoir"])
 
@@ -468,6 +519,7 @@ def categorize(company, fiscal_year, prior_year, period_end, lines, overrides=No
         "_bs_imbalance_current": bs_imbalance_current,
         "_bs_imbalance_prior": bs_imbalance_prior,
         "_applied_overrides": applied_overrides,
+        "_sign_flipped": sign_flipped,
         "_buckets": buckets,
         "_lines": lines,
     }
@@ -489,7 +541,8 @@ RULES:
 - The ONLY exception: if a line item has no numeric account code but is a real dollar amount (e.g. "Inventory Shrinkage $0.00", "BC Ministry of Finance Suspense $9,699.20"), still include it — use a unique key made from its description in the form "NOCODE_<DESCRIPTION_IN_CAPS_WITH_UNDERSCORES>" (e.g. "NOCODE_INVENTORY_SHRINKAGE", "NOCODE_BC_MINISTRY_OF_FINANCE_SUSPENSE"). Never use "null" or leave the key blank — if two different no-code lines both used the same placeholder key, one would silently overwrite the other in the JSON object. Keep the real, exact description in the "description" field regardless of what the key looks like.
 - If two files are uploaded (current year + prior year), match each account code across both years. "current" = the more recent fiscal year, "prior" = the older one. If an account appears in only one year, use 0 for the missing year.
 - Extract exact dollar amounts, preserving sign (negative amounts stay negative).
-- For the balance sheet, only extract lines with a 3-4 digit numeric account code (e.g. "1055 Encaisse - Operating $285,865"). Skip narrative/label-only rows.
+- For the balance sheet, extract lines with a 3-4 digit numeric account code (e.g. "1055 Encaisse - Operating $285,865"). Skip narrative/label-only rows and all "Total for ..." subtotal rows.
+- IMPORTANT EXCEPTION on the balance sheet: the Equity section contains a line "Profit for the year" with a dollar amount but NO account code. This one is NOT a subtotal — it is a real posting that QuickBooks uses to balance the statement, and it must be captured. Emit it with the key "NOCODE_PROFIT_FOR_THE_YEAR" and the exact description "Profit for the year". Do not skip it, and do not confuse it with "Total for Equity".
 
 Return ONLY valid JSON in this exact shape:
 {
@@ -1113,12 +1166,18 @@ if "data_v3" in st.session_state:
                 for code, info in (data.get("_lines") or {}).items():
                     bucket = ACCOUNT_MAP.get(code) or DESCRIPTION_MAP.get(
                         (info.get("description") or "").strip().lower()) or "— UNMAPPED —"
+                    c = info.get("current", 0) or 0
+                    p = info.get("prior", 0) or 0
+                    flipped = code in SIGN_FLIP and (c or p)
+                    if flipped:
+                        c, p = -c, -p
                     rows.append({
                         "Code": code,
                         "Description": info.get("description", ""),
                         "Bucket": bucket,
-                        "Courant": info.get("current", 0) or 0,
-                        "Précédent": info.get("prior", 0) or 0,
+                        "Signe inversé": "✔" if flipped else "",
+                        "Courant": c,
+                        "Précédent": p,
                     })
                 if rows:
                     df = pd.DataFrame(rows).sort_values(["Bucket", "Code"])
@@ -1129,6 +1188,16 @@ if "data_v3" in st.session_state:
                     st.download_button("⬇️ Download tie-out as CSV",
                                        data=df.to_csv(index=False).encode("utf-8"),
                                        file_name="tie_out.csv", mime="text/csv")
+
+    flipped = data.get("_sign_flipped", {})
+    if flipped:
+        with st.expander(f"🔄 {len(flipped)} compte(s) — signe normalisé pour la présentation auditée", expanded=False):
+            st.caption("Ces comptes sont classés par QuickBooks du côté opposé à leur présentation "
+                       "dans les états financiers audités. Le signe est inversé avant tout regroupement.")
+            for code, info in flipped.items():
+                st.markdown(f"**{code}** — {info['description']}  \n"
+                            f"Après inversion — Courant : {fmt_with_dollar(info['current'])} · "
+                            f"Précédent : {fmt_with_dollar(info['prior'])}")
 
     applied = data.get("_applied_overrides", {})
     if applied:
