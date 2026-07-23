@@ -168,33 +168,40 @@ ACCOUNT_MAP = {
     "8515601": "ann3_frais_bancaires", "5692": "ann3_frais_bancaires", "8510701": "ann3_frais_bancaires",
     # ── BALANCE SHEET ─────────────────────────────────────────────────────────
     "1880": "bs_actifs_incorporels", "1890": "bs_actifs_incorporels",
-    "1750": "bs_avances_actionnaires",
+    "1750": "bs_avances_actionnaires", "2680": "bs_avances_actionnaires", "2683": "bs_avances_actionnaires",
+    "2684": "bs_avances_actionnaires", "2685": "bs_avances_actionnaires", "2686": "bs_avances_actionnaires",
+    "2687": "bs_avances_actionnaires", "2688": "bs_avances_actionnaires",
     "1901": "bs_avances_filiale", "1903": "bs_avances_filiale",
     "2400": "bs_avantages_baux",
     "3350": "bs_capital_actions", "3351": "bs_capital_actions", "3551": "bs_capital_actions",
-    "3570": "bs_capital_actions", "3580": "bs_capital_actions",
-    "1300": "bs_charges_payees_avance", "1320": "bs_charges_payees_avance",
+    "3570": "bs_capital_actions",
+    "1300": "bs_charges_payees_avance", "1320": "bs_charges_payees_avance", "1711": "bs_charges_payees_avance",
     "1200": "bs_comptes_clients", "1201": "bs_comptes_clients", "1202": "bs_comptes_clients",
     "1203": "bs_comptes_clients", "1205": "bs_comptes_clients",
     "2100": "bs_comptes_fournisseurs", "2101": "bs_comptes_fournisseurs", "2102": "bs_comptes_fournisseurs",
     "2136": "bs_comptes_fournisseurs", "2155": "bs_comptes_fournisseurs",
+    "2170": "bs_comptes_fournisseurs", "2234": "bs_comptes_fournisseurs", "2300": "bs_comptes_fournisseurs",
+    "2305": "bs_comptes_fournisseurs", "2350": "bs_comptes_fournisseurs", "2355": "bs_comptes_fournisseurs",
+    "2455": "bs_comptes_fournisseurs", "1090": "bs_comptes_fournisseurs",
+    "2180": "bs_comptes_fournisseurs", "2190": "bs_comptes_fournisseurs",
+    "2200": "bs_comptes_fournisseurs", "2205": "bs_comptes_fournisseurs", "2210": "bs_comptes_fournisseurs",
+    "2212": "bs_comptes_fournisseurs", "2310": "bs_comptes_fournisseurs", "2315": "bs_comptes_fournisseurs",
+    "2340": "bs_comptes_fournisseurs", "2345": "bs_comptes_fournisseurs", "2367": "bs_comptes_fournisseurs",
+    "2630": "bs_comptes_fournisseurs", "2635": "bs_comptes_fournisseurs",
     "1210": "bs_credits_impot", "1220": "bs_credits_impot", "1225": "bs_credits_impot",
     "1226": "bs_credits_impot", "1230": "bs_credits_impot", "1231": "bs_credits_impot",
     "1232": "bs_credits_impot",
-    "3560": "bs_deficit",
+    "3560": "bs_deficit", "3580": "bs_deficit",
     "1710": "bs_depots_lt",
     "2620": "bs_dette_lt", "2621": "bs_dette_lt", "2623": "bs_dette_lt",
     "2624": "bs_dette_lt", "2625": "bs_dette_lt", "2626": "bs_dette_lt",
     "2627": "bs_dette_lt", "2628": "bs_dette_lt", "2629": "bs_dette_lt",
-    "2631": "bs_dette_lt", "2680": "bs_dette_lt", "2681": "bs_dette_lt",
-    "2682": "bs_dette_lt", "2683": "bs_dette_lt",
-    "2630": "bs_emprunt_bancaire", "2635": "bs_emprunt_bancaire",
-    "1055": "bs_encaisse", "1056": "bs_encaisse", "1057": "bs_encaisse",
+    "2631": "bs_dette_lt", "2681": "bs_dette_lt", "2682": "bs_dette_lt",
+    "1055": "bs_encaisse", "1056": "bs_encaisse", "1057": "bs_encaisse", "1065": "bs_encaisse",
     "1058": "bs_encaisse", "1059": "bs_encaisse", "1060": "bs_encaisse",
     "1075": "bs_encaisse", "1076": "bs_encaisse", "1080": "bs_encaisse",
-    "1090": "bs_encaisse", "1499": "bs_encaisse", "1700": "bs_encaisse",
+    "1499": "bs_encaisse", "1700": "bs_encaisse",
     "2641": "bs_encaisse",
-    "1711": "bs_frais_payes_avance_lt",
     "1810": "bs_immobilisations", "1811": "bs_immobilisations", "1815": "bs_immobilisations",
     "1816": "bs_immobilisations", "1820": "bs_immobilisations", "1821": "bs_immobilisations",
     "1825": "bs_immobilisations", "1826": "bs_immobilisations", "1835": "bs_immobilisations",
@@ -204,14 +211,6 @@ ACCOUNT_MAP = {
     "2160": "bs_impots_benefice", "2161": "bs_impots_benefice",
     "2163": "bs_impots_futurs",
     "1900": "bs_placement_filiale",
-    "2170": "bs_produits_reportes", "2180": "bs_produits_reportes", "2190": "bs_produits_reportes",
-    "2200": "bs_produits_reportes", "2205": "bs_produits_reportes", "2210": "bs_produits_reportes",
-    "2212": "bs_produits_reportes", "2234": "bs_produits_reportes", "2300": "bs_produits_reportes",
-    "2305": "bs_produits_reportes", "2310": "bs_produits_reportes", "2315": "bs_produits_reportes",
-    "2340": "bs_produits_reportes", "2345": "bs_produits_reportes", "2350": "bs_produits_reportes",
-    "2355": "bs_produits_reportes", "2367": "bs_produits_reportes", "2455": "bs_produits_reportes",
-    "2684": "bs_produits_reportes", "2685": "bs_produits_reportes", "2686": "bs_produits_reportes",
-    "2687": "bs_produits_reportes", "2688": "bs_produits_reportes",
     "1999": "bs_stocks",
     "1250": "bs_travaux_en_cours", "1251": "bs_travaux_en_cours",
 }
@@ -238,6 +237,8 @@ NEEDS_REVIEW = {
 # numeric account code of their own.
 DESCRIPTION_MAP = {
     "inventory shrinkage": "ann1_achats",
+    "bc ministry of finance suspense": "bs_produits_reportes",
+    "pst bc payable": "bs_produits_reportes",
 }
 
 PL_KEYS   = {"benefice_brut","total_charges","benefice_avant_autres","benefice_net"}
@@ -367,8 +368,26 @@ def categorize(company, fiscal_year, prior_year, period_end, lines):
     for k in ["emprunt_bancaire","comptes_fournisseurs","impots_benefice","produits_reportes","tranche_ct_lt"]:
         bs["total_passif_ct"] = add2(bs["total_passif_ct"], bs[k])
     bs["total_passif"] = add2(add2(bs["total_passif_ct"], bs["avantages_baux"]), bs["dette_lt"])
+    # Account 3560 ("BNR début d'exercice") is only the OPENING retained earnings for
+    # the period — it doesn't include the period's own net income/loss. QuickBooks
+    # rolls that forward automatically via its own "Profit for the year" line, which
+    # has no account code and is otherwise silently missed by code-based extraction.
+    # Add the period's net income here so Déficit reflects the closing balance, same
+    # as the audited statement.
+    bs["deficit"] = add2(bs["deficit"], pl["benefice_net"])
     bs["total_avoir"] = add2(bs["capital_actions"], bs["deficit"])
     bs["total_passif_avoir"] = add2(bs["total_passif"], bs["total_avoir"])
+
+    # Balance-sheet integrity check. A handful of accounts (2163 "Actif d'impôt
+    # futur LT", 1090 "Banque - Compte fournisseur employé") are, per the
+    # accountant's confirmed mapping, presented on a different side of the
+    # equation than where QuickBooks itself files them. That's a genuine audit
+    # reclassification — but without the offsetting adjusting entry (not
+    # visible in a flat trial balance), reclassifying them here breaks the
+    # fundamental Actif = Passif + Avoir equation by exactly 2x their value.
+    # Rather than silently accept an unbalanced statement, flag it clearly.
+    bs_imbalance_current = bs["total_actif"]["current"] - bs["total_passif_avoir"]["current"]
+    bs_imbalance_prior = bs["total_actif"]["prior"] - bs["total_passif_avoir"]["prior"]
 
     data = {
         "company": company, "fiscal_year": short_year(fiscal_year), "prior_year": short_year(prior_year),
@@ -377,6 +396,8 @@ def categorize(company, fiscal_year, prior_year, period_end, lines):
         "_needs_review": needs_review,
         "_unmapped": unmapped,
         "_bs_empty": bs["total_actif"]["current"] == 0 and bs["total_actif"]["prior"] == 0,
+        "_bs_imbalance_current": bs_imbalance_current,
+        "_bs_imbalance_prior": bs_imbalance_prior,
     }
     return data
 
@@ -393,7 +414,7 @@ You are transcribing a QuickBooks Profit & Loss report (and Balance Sheet, if in
 RULES:
 - Include EVERY coded line, even if the amount is $0.00.
 - Do NOT include subtotal/header lines like "Total for Income", "Cost of Goods Sold", "Gross Profit", "PROFIT", section headers, or the "Actif"/"Passif" headers on a balance sheet.
-- The ONLY exception: if a line item has no numeric code but is a real amount (e.g. "Inventory Shrinkage $0.00"), include it with "code": null and its description exactly as printed.
+- The ONLY exception: if a line item has no numeric account code but is a real dollar amount (e.g. "Inventory Shrinkage $0.00", "BC Ministry of Finance Suspense $9,699.20"), still include it — use a unique key made from its description in the form "NOCODE_<DESCRIPTION_IN_CAPS_WITH_UNDERSCORES>" (e.g. "NOCODE_INVENTORY_SHRINKAGE", "NOCODE_BC_MINISTRY_OF_FINANCE_SUSPENSE"). Never use "null" or leave the key blank — if two different no-code lines both used the same placeholder key, one would silently overwrite the other in the JSON object. Keep the real, exact description in the "description" field regardless of what the key looks like.
 - If two files are uploaded (current year + prior year), match each account code across both years. "current" = the more recent fiscal year, "prior" = the older one. If an account appears in only one year, use 0 for the missing year.
 - Extract exact dollar amounts, preserving sign (negative amounts stay negative).
 - For the balance sheet, only extract lines with a 3-4 digit numeric account code (e.g. "1055 Encaisse - Operating $285,865"). Skip narrative/label-only rows.
@@ -969,6 +990,14 @@ if "data_v3" in st.session_state:
     st.success(f"✅ {data.get('company','')} · FY{cy} vs FY{py_val}")
     if data.get("_bs_empty"):
         st.warning("⚠️ The balance sheet came back empty (all values are $0). This usually means the balance sheet page/PDF wasn't part of the upload, or it wasn't recognized. Double-check you included it, then re-run.")
+
+    imb_cur = data.get("_bs_imbalance_current", 0)
+    imb_pri = data.get("_bs_imbalance_prior", 0)
+    if abs(imb_cur) > 5 or abs(imb_pri) > 5:
+        parts = []
+        if abs(imb_cur) > 5: parts.append(f"current year off by {fmt_with_dollar(imb_cur)}")
+        if abs(imb_pri) > 5: parts.append(f"prior year off by {fmt_with_dollar(imb_pri)}")
+        st.warning(f"⚠️ Balance sheet doesn't tie out — Total Actif ≠ Total Passif+Avoir ({', '.join(parts)}). This is expected if account 2163 (Impôts futurs) or 1090 (Compte fournisseur employé) has activity this period — both are presented on a different side of the statement than QuickBooks itself files them, and the offsetting adjusting entry isn't visible in a flat trial balance. Confirm the adjusting entries with your accountant.")
 
     needs_review = data.get("_needs_review", {})
     unmapped = data.get("_unmapped", {})
