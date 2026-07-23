@@ -486,14 +486,25 @@ def categorize(company, fiscal_year, prior_year, period_end, lines, overrides=No
     bs["total_passif"] = add2(add2(bs["total_passif_ct"], bs["avantages_baux"]), bs["dette_lt"])
     # Account 3560 ("BNR début d'exercice") is only the OPENING retained earnings
     # for the period — it doesn't include the period's own net income/loss.
-    # QuickBooks rolls that forward via its own "Profit for the year" line, which
-    # has no account code. Prefer that line when it was transcribed: it's the
-    # figure QuickBooks itself uses to balance, and its resulting Total Equity
-    # ties to the audited statement exactly. Fall back to the P&L-derived net
-    # income only when the balance sheet didn't include the line.
+    # QuickBooks rolls that forward via its own "Profit for the year" line.
+    #
+    # That line has no account code, so both the current- and prior-year balance
+    # sheets emit it under the SAME key and one silently overwrites the other —
+    # which left the prior year with no roll-forward at all. So resolve each
+    # year independently: use the QuickBooks line for a given year only if it
+    # actually carries a value there, otherwise fall back to that year's
+    # P&L-derived net income. Mixing sources across years is fine; both are
+    # the same figure when present.
     qb_profit = g("bs_profit_for_year")
-    used_qb_profit = bool(qb_profit["current"] or qb_profit["prior"])
-    roll_forward = qb_profit if used_qb_profit else pl["benefice_net"]
+    roll_forward = zc()
+    roll_source = {}
+    for side in ("current", "prior"):
+        if qb_profit[side]:
+            roll_forward[side] = qb_profit[side]
+            roll_source[side] = "QuickBooks « Profit for the year »"
+        else:
+            roll_forward[side] = pl["benefice_net"][side]
+            roll_source[side] = "bénéfice net calculé (état des résultats)"
     bs["deficit"] = add2(bs["deficit"], roll_forward)
     bs["total_avoir"] = add2(bs["capital_actions"], bs["deficit"])
     bs["total_passif_avoir"] = add2(bs["total_passif"], bs["total_avoir"])
@@ -520,6 +531,8 @@ def categorize(company, fiscal_year, prior_year, period_end, lines, overrides=No
         "_bs_imbalance_prior": bs_imbalance_prior,
         "_applied_overrides": applied_overrides,
         "_sign_flipped": sign_flipped,
+        "_roll_source": roll_source,
+        "_roll_forward": roll_forward,
         "_buckets": buckets,
         "_lines": lines,
     }
@@ -543,6 +556,7 @@ RULES:
 - Extract exact dollar amounts, preserving sign (negative amounts stay negative).
 - For the balance sheet, extract lines with a 3-4 digit numeric account code (e.g. "1055 Encaisse - Operating $285,865"). Skip narrative/label-only rows and all "Total for ..." subtotal rows.
 - IMPORTANT EXCEPTION on the balance sheet: the Equity section contains a line "Profit for the year" with a dollar amount but NO account code. This one is NOT a subtotal — it is a real posting that QuickBooks uses to balance the statement, and it must be captured. Emit it with the key "NOCODE_PROFIT_FOR_THE_YEAR" and the exact description "Profit for the year". Do not skip it, and do not confuse it with "Total for Equity".
+- CRITICAL for "Profit for the year": each balance sheet PDF is a point-in-time snapshot with only ONE amount column, and its "Profit for the year" belongs to THAT statement's fiscal year only. The two balance sheets carry DIFFERENT amounts. Emit a single "NOCODE_PROFIT_FOR_THE_YEAR" entry whose "current" field holds the amount from the more recent balance sheet and whose "prior" field holds the amount from the older one. Never put the same number in both fields, and never let one balance sheet's figure overwrite the other's — determine which PDF is which year from its "As of <date>" header.
 
 Return ONLY valid JSON in this exact shape:
 {
@@ -1188,6 +1202,16 @@ if "data_v3" in st.session_state:
                     st.download_button("⬇️ Download tie-out as CSV",
                                        data=df.to_csv(index=False).encode("utf-8"),
                                        file_name="tie_out.csv", mime="text/csv")
+
+    rollsrc = data.get("_roll_source", {})
+    rollfwd = data.get("_roll_forward", {})
+    if rollsrc:
+        with st.expander("📈 Report du bénéfice au déficit — source par exercice", expanded=False):
+            st.caption("Le compte 3560 ne contient que le solde d'ouverture. Le bénéfice de "
+                       "l'exercice doit y être ajouté pour obtenir le déficit de clôture.")
+            for side, lbl in (("current", "Exercice courant"), ("prior", "Exercice précédent")):
+                st.markdown(f"**{lbl}** — {fmt_with_dollar(rollfwd.get(side, 0))}  \n"
+                            f"Source : {rollsrc.get(side, '—')}")
 
     flipped = data.get("_sign_flipped", {})
     if flipped:
