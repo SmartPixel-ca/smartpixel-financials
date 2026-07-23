@@ -265,33 +265,31 @@ ACCOUNT_MAP = {
 # genuinely-ambiguous accounts have somewhere to go without guessing.
 # ── Sign normalization ───────────────────────────────────────────────────────
 # A few accounts are filed by QuickBooks on the opposite side of the statement
-# from where the audited presentation puts them, so their natural balance
-# arrives with the wrong sign. Negating them here — before any bucketing — is
-# the whole fix; no offsetting adjusting entry is needed, because the account
-# was only ever misfiled, not misstated.
+# from where the audited presentation puts them — and QuickBooks does NOT do
+# this consistently from year to year:
+#   2163  FY2024: Non-current Assets  +73,366.60
+#         FY2025: Current Liabilities -73,366.60
+#   1250  FY2024: Current Liabilities +995,013.16
+#         FY2025: Current Assets   -1,033,758.80
 #
-# 2163 "Actif d'impôt futur LT": a debit-balance ASSET that lives in the 2000
-# liability range. It arrives as -73,366.60 and gets summed into Total actif,
-# subtracting instead of adding — an error of exactly 2x the balance. Verified
-# against the FY2025 tie-out: imbalance was -146,733.20, i.e. 2 x -73,366.60,
-# to the cent, in both the current and prior year.
-SIGN_FLIP = {
-    # 2163 "Actif d'impôt futur LT" — a debit-balance ASSET that QuickBooks
-    # files in the 2000 liability range, arriving as -73,366.60. The audited
-    # statement presents it as +73,367 under Impôts futurs in Actif, so the
-    # sign must be normalized before bucketing or it subtracts from Total actif
-    # instead of adding — an error of exactly 2x the balance.
-    #
-    # Verified: with this flip, correct equity roll-forward, and the auditor
-    # overrides entered, FY2025 ties to 2,670,401 on both sides (residual
-    # -0.50, pure rounding).
-    "2163",
-    # 1090 "Banque - Compte fournisseur employé" — the mirror case. It sits on
-    # the ASSET side in QuickBooks but the accountant's mapping moves it to
-    # "Comptes fournisseurs et charges à payer" on the liability side. Without
-    # the flip it adds instead of subtracting, overstating payables by exactly
-    # 2x its balance (11,743.30 on 5,871.65).
-    "1090",
+# So an unconditional negation is wrong — it corrects the year that is misfiled
+# and breaks the year that is not. Instead declare the sign each account should
+# carry in the audited presentation and normalize every year independently to
+# it. A zero is left alone.
+#   "positive" -> audited statement shows this as a positive amount
+#   "negative" -> audited statement shows this as a negative amount
+SIGN_NORMALIZE = {
+    # Impôts futurs: an asset presented as +73,367 in both audited years.
+    "2163": "positive",
+    # 1250/1251 both roll into Produits reportés, a liability the audited
+    # statement presents positive. QuickBooks carries them as contra-balances
+    # on whichever side it happened to file them that year.
+    "1250": "positive",
+    "1251": "positive",
+    # 1090 is an asset in QuickBooks, but the accountant's mapping moves it to
+    # Comptes fournisseurs on the liability side, where it must REDUCE the
+    # payable — hence negative.
+    "1090": "negative",
 }
 
 NEEDS_REVIEW = {
@@ -308,8 +306,13 @@ DESCRIPTION_MAP = {
     # strictly better than recomputing net income from the P&L and hoping the
     # two agree.
     "profit for the year": "bs_profit_for_year",
-    "bc ministry of finance suspense": "bs_produits_reportes",
-    "pst bc payable": "bs_produits_reportes",
+    # Both appear under Current Liabilities beside the tax payables, and the
+    # accountant's mapping file assigns them to "Comptes fournisseurs et
+    # charges à payer" — not Produits reportés. Routing them to produits
+    # reportés also made them vanish entirely once that line became an
+    # auditor override.
+    "bc ministry of finance suspense": "bs_comptes_fournisseurs",
+    "pst bc payable": "bs_comptes_fournisseurs",
 }
 
 PL_KEYS   = {"benefice_brut","total_charges","benefice_avant_autres","benefice_net"}
@@ -381,10 +384,16 @@ def categorize(company, fiscal_year, prior_year, period_end, lines, overrides=No
 
         # Normalize before bucketing so every downstream total sees the
         # audited-presentation sign, not the QuickBooks filing sign.
-        if code in SIGN_FLIP and (cur or pri):
-            cur, pri = -cur, -pri
-            sign_flipped[code] = {"description": info.get("description", ""),
-                                  "current": cur, "prior": pri}
+        if code in SIGN_NORMALIZE:
+            want = SIGN_NORMALIZE[code]
+            before = (cur, pri)
+            if want == "positive":
+                cur, pri = abs(cur), abs(pri)
+            else:
+                cur, pri = -abs(cur), -abs(pri)
+            if (cur, pri) != before:
+                sign_flipped[code] = {"description": info.get("description", ""),
+                                      "current": cur, "prior": pri, "target": want}
 
         bucket = ACCOUNT_MAP.get(code)
         if bucket is None and desc in DESCRIPTION_MAP:
@@ -1182,9 +1191,12 @@ if "data_v3" in st.session_state:
                         (info.get("description") or "").strip().lower()) or "— UNMAPPED —"
                     c = info.get("current", 0) or 0
                     p = info.get("prior", 0) or 0
-                    flipped = code in SIGN_FLIP and (c or p)
-                    if flipped:
-                        c, p = -c, -p
+                    flipped = False
+                    if code in SIGN_NORMALIZE:
+                        want = SIGN_NORMALIZE[code]
+                        nc, np_ = (abs(c), abs(p)) if want == "positive" else (-abs(c), -abs(p))
+                        flipped = (nc, np_) != (c, p)
+                        c, p = nc, np_
                     rows.append({
                         "Code": code,
                         "Description": info.get("description", ""),
