@@ -1,5 +1,6 @@
 import streamlit as st
 import anthropic
+import pandas as pd
 import base64
 import json
 import re
@@ -68,7 +69,35 @@ with st.sidebar:
     st.markdown("**Output format**")
     out_format = st.radio("Format",["PDF (audited style)","Word (.docx)","Both"],index=0)
     st.markdown("---")
-    st.caption("SmartPixel Financial Tool · v3.0")
+
+    # ── Auditor adjustments ──────────────────────────────────────────────────
+    # Four balance-sheet lines genuinely cannot be derived from a flat trial
+    # balance — they come off schedules the accountant prepares separately
+    # (percentage-of-completion, revenue recognition, loan amortization, lease
+    # incentive). Rather than guess at them from raw QuickBooks accounts, take
+    # them as direct input. Leaving a field at 0 keeps the derived figure.
+    with st.expander("🧾 Ajustements de l'auditeur", expanded=False):
+        st.caption("Ces montants proviennent des annexes préparées par le comptable "
+                   "et ne peuvent pas être déduits de la balance de vérification. "
+                   "Laisser à 0 pour conserver le montant calculé automatiquement.")
+        ov_wip_c = st.number_input("Travaux en cours — courant", value=0.0, step=1.0, format="%.2f")
+        ov_wip_p = st.number_input("Travaux en cours — précédent", value=0.0, step=1.0, format="%.2f")
+        ov_dr_c  = st.number_input("Produits reportés — courant", value=0.0, step=1.0, format="%.2f")
+        ov_dr_p  = st.number_input("Produits reportés — précédent", value=0.0, step=1.0, format="%.2f")
+        ov_ltd_c = st.number_input("Tranche court terme dette LT — courant", value=0.0, step=1.0, format="%.2f")
+        ov_ltd_p = st.number_input("Tranche court terme dette LT — précédent", value=0.0, step=1.0, format="%.2f")
+        ov_lease_c = st.number_input("Amort. incitatif bail (retiré du loyer) — courant", value=0.0, step=1.0, format="%.2f")
+        ov_lease_p = st.number_input("Amort. incitatif bail (retiré du loyer) — précédent", value=0.0, step=1.0, format="%.2f")
+
+    st.markdown("---")
+    st.caption("SmartPixel Financial Tool · v3.1")
+
+overrides = {
+    "travaux_en_cours": {"current": ov_wip_c,   "prior": ov_wip_p},
+    "produits_reportes": {"current": ov_dr_c,   "prior": ov_dr_p},
+    "tranche_ct_lt":    {"current": ov_ltd_c,   "prior": ov_ltd_p},
+    "lease_incentive":  {"current": ov_lease_c, "prior": ov_lease_p},
+}
 
 settings = dict(company_name=company_name,fiscal_year=fiscal_year,prior_year=prior_year,
                 period_end=period_end,preparer=preparer,currency=currency)
@@ -197,6 +226,10 @@ ACCOUNT_MAP = {
     "2624": "bs_dette_lt", "2625": "bs_dette_lt", "2626": "bs_dette_lt",
     "2627": "bs_dette_lt", "2628": "bs_dette_lt", "2629": "bs_dette_lt",
     "2631": "bs_dette_lt", "2632": "bs_dette_lt", "2681": "bs_dette_lt", "2682": "bs_dette_lt",
+    # 1090 "Banque - Compte fournisseur employé" is a bank account QuickBooks
+    # files among the payables; per the accountant's mapping it belongs in
+    # Encaisse with the other bank accounts.
+    "1090": "bs_encaisse",
     "1055": "bs_encaisse", "1056": "bs_encaisse", "1057": "bs_encaisse", "1065": "bs_encaisse",
     "1058": "bs_encaisse", "1059": "bs_encaisse", "1060": "bs_encaisse",
     "1075": "bs_encaisse", "1076": "bs_encaisse", "1080": "bs_encaisse",
@@ -284,7 +317,7 @@ def short_year(s):
     matches = re.findall(r"\d{4}", str(s))
     return matches[-1] if matches else str(s)[:9]
 
-def categorize(company, fiscal_year, prior_year, period_end, lines):
+def categorize(company, fiscal_year, prior_year, period_end, lines, overrides=None):
     """
     Deterministically buckets raw {code: {description, current, prior}} line
     items into the full financial-statement structure using ACCOUNT_MAP.
@@ -329,7 +362,20 @@ def categorize(company, fiscal_year, prior_year, period_end, lines):
     ann1["total"] = add2(add2(add2(ann1["achats"],ann1["salaires"]),
                         add2(ann1["soustraitance"],ann1["livraison"])), ann1["logiciel"])
 
+    ov = overrides or {}
+    def ov_val(key, side):
+        return (ov.get(key, {}) or {}).get(side, 0) or 0
+
     ann2 = {k: g(f"ann2_{k}") for k in ANN2_KEYS}
+
+    # Lease incentive amortization is bundled inside account 8000601 (Loyer) in
+    # QuickBooks but presented separately in the audited statements. Carve the
+    # accountant-supplied amount out of Loyer so Annexe 2 ties.
+    for side in ("current", "prior"):
+        inc = ov_val("lease_incentive", side)
+        if inc:
+            ann2["loyer"][side] = ann2["loyer"][side] - inc
+
     ann2_total = zc()
     for k in ANN2_KEYS: ann2_total = add2(ann2_total, ann2[k])
     ann2["total"] = ann2_total
@@ -356,6 +402,19 @@ def categorize(company, fiscal_year, prior_year, period_end, lines):
     pl["benefice_net"]          = add2(pl["benefice_avant_autres"], pl["autres_revenus"])
 
     bs = {k: g(f"bs_{k}") for k in BS_KEYS}
+
+    # Auditor-supplied figures replace (not supplement) the derived amounts.
+    # Travaux en cours and Produits reportés both come off the percentage-of-
+    # completion / revenue-recognition schedule and are not reconstructable
+    # from accounts 1250/1251 alone. A zero means "no override supplied".
+    applied_overrides = {}
+    for key in ("travaux_en_cours", "produits_reportes"):
+        for side in ("current", "prior"):
+            val = ov_val(key, side)
+            if val:
+                bs[key][side] = val
+                applied_overrides.setdefault(key, []).append(side)
+
     bs["total_actif_ct"] = zc()
     for k in ["encaisse","comptes_clients","stocks","travaux_en_cours","credits_impot","charges_payees_avance"]:
         bs["total_actif_ct"] = add2(bs["total_actif_ct"], bs[k])
@@ -363,7 +422,17 @@ def categorize(company, fiscal_year, prior_year, period_end, lines):
     for k in ["depots_lt","frais_payes_avance_lt","immobilisations","actifs_incorporels",
               "impots_futurs","avances_filiale","avances_actionnaires","placement_filiale"]:
         bs["total_actif"] = add2(bs["total_actif"], bs[k])
-    bs["tranche_ct_lt"] = zc()  # needs loan schedule — not derivable from a flat trial balance
+    # Tranche à court terme de la dette à long terme needs the loan amortization
+    # schedules (accounts 2623, 2626, 2627, 2628, 2629) — not derivable from a
+    # flat trial balance. When supplied, reclassify it OUT of dette_lt so the
+    # total debt isn't counted twice.
+    bs["tranche_ct_lt"] = zc()
+    for side in ("current", "prior"):
+        val = ov_val("tranche_ct_lt", side)
+        if val:
+            bs["tranche_ct_lt"][side] = val
+            bs["dette_lt"][side] = bs["dette_lt"][side] - val
+            applied_overrides.setdefault("tranche_ct_lt", []).append(side)
     bs["total_passif_ct"] = zc()
     for k in ["emprunt_bancaire","comptes_fournisseurs","impots_benefice","produits_reportes","tranche_ct_lt"]:
         bs["total_passif_ct"] = add2(bs["total_passif_ct"], bs[k])
@@ -398,6 +467,9 @@ def categorize(company, fiscal_year, prior_year, period_end, lines):
         "_bs_empty": bs["total_actif"]["current"] == 0 and bs["total_actif"]["prior"] == 0,
         "_bs_imbalance_current": bs_imbalance_current,
         "_bs_imbalance_prior": bs_imbalance_prior,
+        "_applied_overrides": applied_overrides,
+        "_buckets": buckets,
+        "_lines": lines,
     }
     return data
 
@@ -432,7 +504,7 @@ Return ONLY valid JSON in this exact shape:
 }
 Use 0 for missing values."""
 
-def extract(files):
+def extract(files, overrides=None):
     client = anthropic.Anthropic(api_key=get_api_key())
     content = []
     for f in files:
@@ -463,10 +535,14 @@ def extract(files):
 
     def _parse(text):
         parsed = json.loads(text)
+        # Stash the raw transcription so changing an override re-buckets
+        # instantly instead of costing another API call.
+        st.session_state["raw_parsed_v3"] = parsed
         return categorize(
             parsed.get("company","Active Média inc."),
             parsed.get("fiscal_year",""), parsed.get("prior_year",""),
-            parsed.get("period_end",""), parsed.get("lines",{}) or {}
+            parsed.get("period_end",""), parsed.get("lines",{}) or {},
+            overrides=overrides
         )
 
     try:
@@ -976,10 +1052,21 @@ if not get_api_key():
 if st.button("⚡ Extract & Build Report", disabled=not(uploaded and get_api_key()), type="primary", use_container_width=True):
     with st.spinner("Reading files and grouping accounts... ~30 seconds"):
         try:
-            data = extract(uploaded)
+            data = extract(uploaded, overrides=overrides)
             st.session_state["data_v3"] = data
         except Exception as e:
             st.error(f"Extraction failed: {e}")
+
+# Overrides are applied deterministically in Python, so changing one only needs
+# a re-bucket of the cached transcription — no second API call, no re-upload.
+if "raw_parsed_v3" in st.session_state:
+    _p = st.session_state["raw_parsed_v3"]
+    st.session_state["data_v3"] = categorize(
+        _p.get("company", "Active Média inc."),
+        _p.get("fiscal_year", ""), _p.get("prior_year", ""),
+        _p.get("period_end", ""), _p.get("lines", {}) or {},
+        overrides=overrides
+    )
 
 if "data_v3" in st.session_state:
     data = st.session_state["data_v3"]
@@ -997,7 +1084,59 @@ if "data_v3" in st.session_state:
         parts = []
         if abs(imb_cur) > 5: parts.append(f"current year off by {fmt_with_dollar(imb_cur)}")
         if abs(imb_pri) > 5: parts.append(f"prior year off by {fmt_with_dollar(imb_pri)}")
-        st.warning(f"⚠️ Balance sheet doesn't tie out — Total Actif ≠ Total Passif+Avoir ({', '.join(parts)}). This is expected if account 2163 (Impôts futurs) or 1090 (Compte fournisseur employé) has activity this period — both are presented on a different side of the statement than QuickBooks itself files them, and the offsetting adjusting entry isn't visible in a flat trial balance. Confirm the adjusting entries with your accountant.")
+        st.warning(f"⚠️ Balance sheet doesn't tie out — Total Actif ≠ Total Passif+Avoir ({', '.join(parts)}).")
+        with st.expander("🔍 Diagnose the imbalance", expanded=True):
+            st.caption("Most likely causes, in order. Work top-down — fixing one changes the residual, so re-run after each.")
+            st.markdown(
+                "1. **Unmapped accounts** — anything in the red box below is excluded from every total. "
+                "Add it to `ACCOUNT_MAP` first.\n"
+                "2. **Auditor schedule items** — Travaux en cours, Produits reportés, and Tranche à court "
+                "terme de la dette à long terme come off schedules, not the trial balance. Enter them under "
+                "*Ajustements de l'auditeur* in the sidebar.\n"
+                "3. **Account 2163 (Impôts futurs)** — QuickBooks files it as a credit; the audited statement "
+                "presents it as a long-term asset. If the sign isn't flipped on import, the error is exactly 2× its balance.\n"
+                "4. **Opening déficit (account 3560)** — the prior-year gap being much larger than the current-year "
+                "gap points here. Confirm the opening retained-earnings balance carried through."
+            )
+            bs_d = data.get("bs", {})
+            st.markdown("**Where the two sides land:**")
+            d1, d2 = st.columns(2)
+            with d1:
+                st.metric("Total actif (courant)", fmt_num((bs_d.get("total_actif") or {}).get("current", 0)))
+                st.metric("Total actif (précédent)", fmt_num((bs_d.get("total_actif") or {}).get("prior", 0)))
+            with d2:
+                st.metric("Total passif + avoir (courant)", fmt_num((bs_d.get("total_passif_avoir") or {}).get("current", 0)))
+                st.metric("Total passif + avoir (précédent)", fmt_num((bs_d.get("total_passif_avoir") or {}).get("prior", 0)))
+
+            if st.checkbox("Show account-level tie-out table"):
+                rows = []
+                for code, info in (data.get("_lines") or {}).items():
+                    bucket = ACCOUNT_MAP.get(code) or DESCRIPTION_MAP.get(
+                        (info.get("description") or "").strip().lower()) or "— UNMAPPED —"
+                    rows.append({
+                        "Code": code,
+                        "Description": info.get("description", ""),
+                        "Bucket": bucket,
+                        "Courant": info.get("current", 0) or 0,
+                        "Précédent": info.get("prior", 0) or 0,
+                    })
+                if rows:
+                    df = pd.DataFrame(rows).sort_values(["Bucket", "Code"])
+                    bs_only = st.checkbox("Balance sheet accounts only", value=True)
+                    if bs_only:
+                        df = df[df["Bucket"].str.startswith("bs_") | (df["Bucket"] == "— UNMAPPED —")]
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    st.download_button("⬇️ Download tie-out as CSV",
+                                       data=df.to_csv(index=False).encode("utf-8"),
+                                       file_name="tie_out.csv", mime="text/csv")
+
+    applied = data.get("_applied_overrides", {})
+    if applied:
+        labels = {"travaux_en_cours": "Travaux en cours",
+                  "produits_reportes": "Produits reportés",
+                  "tranche_ct_lt": "Tranche à court terme de la dette à long terme"}
+        st.info("🧾 Ajustements de l'auditeur appliqués : " +
+                ", ".join(f"{labels.get(k, k)} ({', '.join(v)})" for k, v in applied.items()))
 
     needs_review = data.get("_needs_review", {})
     unmapped = data.get("_unmapped", {})
