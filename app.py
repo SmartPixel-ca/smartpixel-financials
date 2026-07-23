@@ -93,7 +93,7 @@ settings = dict(company_name=company_name,fiscal_year=fiscal_year,prior_year=pri
 #     both "bureau" and "entretien")
 ACCOUNT_MAP = {
     # ── Income (not part of an annexe — flows straight to "ventes") ────────
-    "4000101": "ventes", "4001101": "ventes", "4025101": "ventes",
+    "4000101": "ventes", "4000103": "ventes", "4001101": "ventes", "4025101": "ventes",
     "4050101": "ventes", "4075101": "ventes", "4200101": "ventes",
     "4225101": "ventes", "4250101": "ventes", "4275101": "ventes",
     "4300101": "ventes", "4325101": "ventes", "4350101": "ventes",
@@ -167,7 +167,7 @@ ACCOUNT_MAP = {
     "8500601": "ann3_frais_bancaires", "8500605": "ann3_frais_bancaires", "8500811": "ann3_frais_bancaires",
     "8515601": "ann3_frais_bancaires", "5692": "ann3_frais_bancaires", "8510701": "ann3_frais_bancaires",
     # ── BALANCE SHEET ─────────────────────────────────────────────────────────
-    "1880": "bs_actifs_incorporels", "1890": "bs_actifs_incorporels",
+    "1880": "bs_actifs_incorporels", "1890": "bs_actifs_incorporels", "1891": "bs_actifs_incorporels",
     "1750": "bs_avances_actionnaires", "2680": "bs_avances_actionnaires", "2683": "bs_avances_actionnaires",
     "2684": "bs_avances_actionnaires", "2685": "bs_avances_actionnaires", "2686": "bs_avances_actionnaires",
     "2687": "bs_avances_actionnaires", "2688": "bs_avances_actionnaires",
@@ -182,7 +182,7 @@ ACCOUNT_MAP = {
     "2136": "bs_comptes_fournisseurs", "2155": "bs_comptes_fournisseurs",
     "2170": "bs_comptes_fournisseurs", "2234": "bs_comptes_fournisseurs", "2300": "bs_comptes_fournisseurs",
     "2305": "bs_comptes_fournisseurs", "2350": "bs_comptes_fournisseurs", "2355": "bs_comptes_fournisseurs",
-    "2455": "bs_comptes_fournisseurs", "1090": "bs_comptes_fournisseurs",
+    "2455": "bs_comptes_fournisseurs",
     "2180": "bs_comptes_fournisseurs", "2190": "bs_comptes_fournisseurs",
     "2200": "bs_comptes_fournisseurs", "2205": "bs_comptes_fournisseurs", "2210": "bs_comptes_fournisseurs",
     "2212": "bs_comptes_fournisseurs", "2310": "bs_comptes_fournisseurs", "2315": "bs_comptes_fournisseurs",
@@ -196,7 +196,7 @@ ACCOUNT_MAP = {
     "2620": "bs_dette_lt", "2621": "bs_dette_lt", "2623": "bs_dette_lt",
     "2624": "bs_dette_lt", "2625": "bs_dette_lt", "2626": "bs_dette_lt",
     "2627": "bs_dette_lt", "2628": "bs_dette_lt", "2629": "bs_dette_lt",
-    "2631": "bs_dette_lt", "2681": "bs_dette_lt", "2682": "bs_dette_lt",
+    "2631": "bs_dette_lt", "2632": "bs_dette_lt", "2681": "bs_dette_lt", "2682": "bs_dette_lt",
     "1055": "bs_encaisse", "1056": "bs_encaisse", "1057": "bs_encaisse", "1065": "bs_encaisse",
     "1058": "bs_encaisse", "1059": "bs_encaisse", "1060": "bs_encaisse",
     "1075": "bs_encaisse", "1076": "bs_encaisse", "1080": "bs_encaisse",
@@ -207,7 +207,7 @@ ACCOUNT_MAP = {
     "1825": "bs_immobilisations", "1826": "bs_immobilisations", "1835": "bs_immobilisations",
     "1836": "bs_immobilisations", "1840": "bs_immobilisations", "1841": "bs_immobilisations",
     "1845": "bs_immobilisations", "1846": "bs_immobilisations", "1855": "bs_immobilisations",
-    "1856": "bs_immobilisations", "1891": "bs_immobilisations",
+    "1856": "bs_immobilisations",
     "2160": "bs_impots_benefice", "2161": "bs_impots_benefice",
     "2163": "bs_impots_futurs",
     "1900": "bs_placement_filiale",
