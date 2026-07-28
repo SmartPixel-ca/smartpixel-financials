@@ -941,89 +941,224 @@ def build_word(data, s):
     for sec in doc.sections:
         sec.page_width=Inches(8.5); sec.page_height=Inches(11)
         sec.left_margin=sec.right_margin=Inches(0.9)
-        sec.top_margin=sec.bottom_margin=Inches(0.85)
+        sec.top_margin=Inches(0.8); sec.bottom_margin=Inches(0.75)
 
-    NAVY=RGBColor(0x1A,0x2E,0x4A); BLACK=RGBColor(0,0,0); GREY=RGBColor(0x55,0x55,0x55)
+    # ── Palette (matches the SmartPixel tool's own navy/blue identity) ────────
+    NAVY   = RGBColor(0x1A,0x2E,0x4A)
+    BLUE   = RGBColor(0x2E,0x75,0xB6)
+    BLACK  = RGBColor(0x1A,0x1A,0x1A)
+    GREY   = RGBColor(0x6B,0x77,0x88)
+    WHITE  = RGBColor(0xFF,0xFF,0xFF)
+    GREEN  = RGBColor(0x1A,0x7A,0x4A)
+    RED    = RGBColor(0xC0,0x39,0x2B)
+    H_NAVY = "1A2E4A"; H_BLUE="2E75B6"; H_BAND="EEF3F9"; H_ZEBRA="F7F9FC"
+
     cy=data.get("fiscal_year",s["fiscal_year"]); py=data.get("prior_year",s["prior_year"])
     COL1=Twips(5400); COL2=Twips(1800); COL3=Twips(1800)
+    FONT="Calibri"
 
     def set_bg(cell,hex_color):
-        tc=cell._tc; tcPr=tc.get_or_add_tcPr()
+        tcPr=cell._tc.get_or_add_tcPr()
         shd=OxmlElement('w:shd')
         shd.set(qn('w:val'),'clear'); shd.set(qn('w:color'),'auto'); shd.set(qn('w:fill'),hex_color)
         tcPr.append(shd)
 
     def no_bdr(cell):
-        tc=cell._tc; tcPr=tc.get_or_add_tcPr()
+        tcPr=cell._tc.get_or_add_tcPr()
         for ex in tcPr.findall(qn('w:tcBorders')): tcPr.remove(ex)
         tcB=OxmlElement('w:tcBorders')
         for side in ['top','left','bottom','right']:
             b=OxmlElement(f'w:{side}'); b.set(qn('w:val'),'none'); tcB.append(b)
         tcPr.append(tcB)
 
-    def underline_cell(cell, thick=False):
-        tc=cell._tc; tcPr=tc.get_or_add_tcPr()
-        for ex in tcPr.findall(qn('w:tcBorders')): tcPr.remove(ex)
-        tcB=OxmlElement('w:tcBorders')
-        for side in ['top','left','right']:
-            b=OxmlElement(f'w:{side}'); b.set(qn('w:val'),'none'); tcB.append(b)
-        b=OxmlElement('w:bottom'); b.set(qn('w:val'),'single')
-        b.set(qn('w:sz'),'12' if thick else '6'); b.set(qn('w:color'),'000000')
-        tcB.append(b); tcPr.append(tcB)
+    def edge(cell, side="bottom", color="1A2E4A", sz="8"):
+        tcPr=cell._tc.get_or_add_tcPr()
+        tcB=tcPr.find(qn('w:tcBorders'))
+        if tcB is None:
+            tcB=OxmlElement('w:tcBorders'); tcPr.append(tcB)
+        for ex in tcB.findall(qn(f'w:{side}')): tcB.remove(ex)
+        b=OxmlElement(f'w:{side}'); b.set(qn('w:val'),'single')
+        b.set(qn('w:sz'),sz); b.set(qn('w:color'),color); tcB.append(b)
 
-    def run(para,text,bold=False,size=10,color=BLACK):
-        r=para.add_run(text); r.bold=bold; r.font.name="Arial"; r.font.size=Pt(size)
-        r.font.color.rgb=color
+    def run(para,text,bold=False,size=10,color=BLACK,font=None,italic=False,caps=False):
+        r=para.add_run(text); r.bold=bold; r.italic=italic
+        r.font.name=font or FONT; r.font.size=Pt(size); r.font.color.rgb=color
+        if caps: r.font.all_caps=True
+        return r
 
-    def ns(p): p.paragraph_format.space_before=Pt(0); p.paragraph_format.space_after=Pt(0)
+    def ns(p,before=0,after=0):
+        p.paragraph_format.space_before=Pt(before); p.paragraph_format.space_after=Pt(after)
 
-    def page_hdr(title, period):
-        p=doc.add_paragraph(); ns(p); run(p,s["company_name"].upper(),bold=True,size=16)
-        p2=doc.add_paragraph(); ns(p2); run(p2,title,size=10)
-        p3=doc.add_paragraph()
-        pPr=p3._p.get_or_add_pPr(); pBdr=OxmlElement('w:pBdr')
+    def rule(p,color="2E75B6",sz="12",space=6):
+        pPr=p._p.get_or_add_pPr(); pBdr=OxmlElement('w:pBdr')
         bot=OxmlElement('w:bottom'); bot.set(qn('w:val'),'single')
-        bot.set(qn('w:sz'),'6'); bot.set(qn('w:color'),'000000')
-        pBdr.append(bot); pPr.append(pBdr); p3.paragraph_format.space_after=Pt(8)
-        run(p3,period,size=9)
+        bot.set(qn('w:sz'),sz); bot.set(qn('w:color'),color); bot.set(qn('w:space'),str(space))
+        pBdr.append(bot); pPr.append(pBdr)
 
+    # ── Running footer: page numbers + confidentiality ────────────────────────
+    def add_footer():
+        for sec in doc.sections:
+            ftr=sec.footer
+            p=ftr.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; ns(p)
+            rule_top=p._p.get_or_add_pPr(); pBdr=OxmlElement('w:pBdr')
+            top=OxmlElement('w:top'); top.set(qn('w:val'),'single')
+            top.set(qn('w:sz'),'4'); top.set(qn('w:color'),'D6DEE8'); top.set(qn('w:space'),'6')
+            pBdr.append(top); rule_top.append(pBdr)
+            run(p,f"{s['company_name']}  ·  Confidentiel / Confidential  ·  ",size=7.5,color=GREY)
+            r=p.add_run(); r.font.name=FONT; r.font.size=Pt(7.5); r.font.color.rgb=GREY
+            fld=OxmlElement('w:fldSimple'); fld.set(qn('w:instr'),'PAGE')
+            r._r.addnext(fld)
+
+    # ── COVER PAGE ───────────────────────────────────────────────────────────
+    def cover():
+        for _ in range(4): ns(doc.add_paragraph(),0,0)
+        # Accent bar
+        bar=doc.add_table(rows=1,cols=1); bar.alignment=WD_TABLE_ALIGNMENT.LEFT
+        c=bar.rows[0].cells[0]; c.width=Twips(1600)
+        no_bdr(c); set_bg(c,H_BLUE)
+        pc=c.paragraphs[0]; ns(pc); run(pc," ",size=3)
+
+        p=doc.add_paragraph(); ns(p,14,0)
+        run(p,s["company_name"],bold=True,size=30,color=NAVY)
+        p=doc.add_paragraph(); ns(p,0,2)
+        run(p,"SmartPixel",size=15,color=BLUE)
+
+        p=doc.add_paragraph(); ns(p,22,0); rule(p,"D6DEE8","6")
+        p=doc.add_paragraph(); ns(p,10,0)
+        run(p,"ÉTATS FINANCIERS",bold=True,size=17,color=NAVY)
+        p=doc.add_paragraph(); ns(p,0,0)
+        run(p,"FINANCIAL STATEMENTS",size=12,color=GREY)
+
+        p=doc.add_paragraph(); ns(p,16,0)
+        run(p,f"Exercice clos le {s['period_end']}",size=11.5,color=BLACK)
+        p=doc.add_paragraph(); ns(p,0,0)
+        run(p,f"Year ended {s['period_end']}",size=10,color=GREY,italic=True)
+        p=doc.add_paragraph(); ns(p,2,0)
+        run(p,f"Avec informations comparatives de {py}",size=10,color=GREY)
+
+        for _ in range(7): ns(doc.add_paragraph(),0,0)
+
+        meta=doc.add_table(rows=0,cols=2); meta.alignment=WD_TABLE_ALIGNMENT.LEFT
+        for k,val in [("Monnaie / Currency",s.get("currency","CAD")),
+                      ("Préparé par / Prepared by",s.get("preparer","Management")),
+                      ("Date de production",datetime.now().strftime("%d %B %Y"))]:
+            tr=meta.add_row(); a,b=tr.cells
+            a.width=Twips(2900); b.width=Twips(4200)
+            no_bdr(a); no_bdr(b)
+            pa=a.paragraphs[0]; ns(pa,1,1); run(pa,k,size=8.5,color=GREY,caps=True)
+            pb=b.paragraphs[0]; ns(pb,1,1); run(pb,str(val),size=9.5,color=BLACK,bold=True)
+
+        p=doc.add_paragraph(); ns(p,20,0); rule(p,"2E75B6","10")
+        p=doc.add_paragraph(); ns(p,6,0)
+        run(p,"Confidentiel — Usage interne seulement / Confidential — Internal use only",
+            size=8,color=GREY,italic=True)
+        doc.add_page_break()
+
+    # ── TABLE OF CONTENTS ────────────────────────────────────────────────────
+    def toc():
+        p=doc.add_paragraph(); ns(p,0,0)
+        run(p,"TABLE DES MATIÈRES",bold=True,size=15,color=NAVY)
+        p=doc.add_paragraph(); ns(p,0,10)
+        run(p,"Table of contents",size=9.5,color=GREY,italic=True); rule(p,"2E75B6","10")
+
+        entries=[("État non consolidé des résultats","Income statement","3"),
+                 ("Bilan non consolidé","Balance sheet","4"),
+                 ("Annexe 1 — Coût des ventes","Cost of sales","5"),
+                 ("Annexe 2 — Frais d'exploitation","Operating expenses","5"),
+                 ("Annexe 3 — Frais financiers","Financial expenses","6"),
+                 ("Annexe 4 — Autres revenus","Other income","6")]
+        t=doc.add_table(rows=0,cols=2); t.alignment=WD_TABLE_ALIGNMENT.LEFT
+        for fr,en,pg in entries:
+            tr=t.add_row(); a,b=tr.cells
+            a.width=Twips(7400); b.width=Twips(600)
+            no_bdr(a); no_bdr(b); edge(a,"bottom","E8EDF3","4"); edge(b,"bottom","E8EDF3","4")
+            pa=a.paragraphs[0]; ns(pa,5,5)
+            run(pa,fr,size=10.5,color=NAVY,bold=True)
+            run(pa,f"   {en}",size=8.5,color=GREY,italic=True)
+            pb=b.paragraphs[0]; pb.alignment=WD_ALIGN_PARAGRAPH.RIGHT; ns(pb,5,5)
+            run(pb,pg,size=10,color=BLUE,bold=True)
+        doc.add_page_break()
+
+    # ── SECTION HEADER ───────────────────────────────────────────────────────
+    def page_hdr(title, period, sub=None):
+        band=doc.add_table(rows=1,cols=1); band.alignment=WD_TABLE_ALIGNMENT.LEFT
+        c=band.rows[0].cells[0]; c.width=Twips(9000)
+        no_bdr(c); set_bg(c,H_NAVY)
+        p=c.paragraphs[0]; ns(p,5,4)
+        p.paragraph_format.left_indent=Twips(120)
+        run(p,s["company_name"].upper(),bold=True,size=12,color=WHITE)
+        p2=c.add_paragraph(); ns(p2,0,6)
+        p2.paragraph_format.left_indent=Twips(120)
+        run(p2,title,size=10,color=RGBColor(0xC8,0xD8,0xEC))
+        if sub:
+            p3=c.add_paragraph(); ns(p3,0,6)
+            p3.paragraph_format.left_indent=Twips(120)
+            run(p3,sub,size=8.5,color=RGBColor(0xA8,0xBE,0xDA),italic=True)
+        p=doc.add_paragraph(); ns(p,4,8)
+        run(p,period,size=8.5,color=GREY,italic=True)
+
+    def annexe_title(num, fr, en):
+        p=doc.add_paragraph(); ns(p,12,3)
+        run(p,f"ANNEXE {num}",bold=True,size=8.5,color=BLUE,caps=True)
+        p2=doc.add_paragraph(); ns(p2,0,4)
+        run(p2,fr,bold=True,size=11.5,color=NAVY)
+        run(p2,f"   {en}",size=8.5,color=GREY,italic=True)
+        rule(p2,"D6DEE8","6")
+
+    # ── TABLE ────────────────────────────────────────────────────────────────
     def make_table(rows):
         tbl=doc.add_table(rows=0,cols=3); tbl.alignment=WD_TABLE_ALIGNMENT.LEFT
-        # Header row
         tr=tbl.add_row(); cells=tr.cells
         cells[0].width=COL1; cells[1].width=COL2; cells[2].width=COL3
-        for c in cells: set_bg(c,"FFFFFF"); no_bdr(c)
+        for c in cells:
+            no_bdr(c); set_bg(c,H_NAVY); edge(c,"bottom",H_BLUE,"12")
         for c,val,al in [(cells[0],"",WD_ALIGN_PARAGRAPH.LEFT),
-                          (cells[1],cy,WD_ALIGN_PARAGRAPH.RIGHT),
-                          (cells[2],py,WD_ALIGN_PARAGRAPH.RIGHT)]:
-            p=c.paragraphs[0]; p.alignment=al; ns(p)
-            run(p,val,bold=True,size=9)
-            underline_cell(c)
+                          (cells[1],str(cy),WD_ALIGN_PARAGRAPH.RIGHT),
+                          (cells[2],str(py),WD_ALIGN_PARAGRAPH.RIGHT)]:
+            p=c.paragraphs[0]; p.alignment=al; ns(p,3,3)
+            run(p,val,bold=True,size=9,color=WHITE)
 
+        zebra=False
         for lbl,v1,v2,stype in rows:
             tr=tbl.add_row(); cells=tr.cells
             cells[0].width=COL1; cells[1].width=COL2; cells[2].width=COL3
-            for c in cells: set_bg(c,"FFFFFF"); no_bdr(c)
+            for c in cells: no_bdr(c)
 
             if stype=="blank":
                 for c in cells:
-                    p=c.paragraphs[0]; ns(p); p.paragraph_format.space_before=Pt(3)
+                    p=c.paragraphs[0]; ns(p,2,2)
+                continue
+
+            if stype=="section":
+                for c in cells: set_bg(c,H_BAND)
+                for c,val,al in [(cells[0],lbl,WD_ALIGN_PARAGRAPH.LEFT),
+                                  (cells[1],v1,WD_ALIGN_PARAGRAPH.RIGHT),
+                                  (cells[2],v2,WD_ALIGN_PARAGRAPH.RIGHT)]:
+                    p=c.paragraphs[0]; p.alignment=al; ns(p,3,3)
+                    run(p,val,bold=True,size=9.5,color=NAVY)
+                zebra=False
                 continue
 
             bold_row=stype in ("grand","total","subtotal")
+            if stype=="normal" and zebra:
+                for c in cells: set_bg(c,H_ZEBRA)
+            zebra = not zebra if stype in ("normal","indent") else False
+
+            txt_color = NAVY if bold_row else BLACK
             for c,val,al in [(cells[0],lbl,WD_ALIGN_PARAGRAPH.LEFT),
                               (cells[1],v1,WD_ALIGN_PARAGRAPH.RIGHT),
                               (cells[2],v2,WD_ALIGN_PARAGRAPH.RIGHT)]:
-                p=c.paragraphs[0]; p.alignment=al; ns(p)
-                p.paragraph_format.space_before=Pt(1); p.paragraph_format.space_after=Pt(1)
-                run(p,val,bold=bold_row,size=9.5)
+                p=c.paragraphs[0]; p.alignment=al; ns(p,2,2)
+                run(p,val,bold=bold_row,size=9.5,color=txt_color)
 
             if stype=="grand":
-                for c in cells: underline_cell(c,thick=True)
+                for c in cells:
+                    set_bg(c,H_BAND)
+                    edge(c,"top",H_NAVY,"8"); edge(c,"bottom",H_NAVY,"18")
             elif stype in ("total","subtotal"):
-                for c in cells: underline_cell(c)
+                for c in cells: edge(c,"top","AFC0D4","4"); edge(c,"bottom","AFC0D4","8")
 
-        doc.add_paragraph().paragraph_format.space_after=Pt(6)
+        doc.add_paragraph().paragraph_format.space_after=Pt(4)
 
     def v(obj,key):
         d=obj.get(key,{}) if obj else {}
@@ -1036,12 +1171,16 @@ def build_word(data, s):
     a3=data.get("ann3",{}); a4=data.get("ann4",{})
     period_str=f"Exercice clos le {s['period_end']}, avec informations comparatives de {py}"
 
-    page_hdr("État non consolidé des résultats", period_str)
+    add_footer()
+    cover()
+    toc()
+
+    page_hdr("État non consolidé des résultats", period_str, "Unconsolidated income statement")
     make_table([
         ("Ventes (notes 11 et 12)", fmt_with_dollar(v(pl,"ventes")), fmt_with_dollar(vp(pl,"ventes")), "normal"),
         ("","","","blank"),
         ("Coût des ventes (annexe 1)", fmt_num(v(pl,"cout_des_ventes")), fmt_num(vp(pl,"cout_des_ventes")), "indent"),
-        ("", fmt_num(v(pl,"benefice_brut")), fmt_num(vp(pl,"benefice_brut")), "subtotal"),
+        ("Bénéfice brut", fmt_num(v(pl,"benefice_brut")), fmt_num(vp(pl,"benefice_brut")), "subtotal"),
         ("","","","blank"),
         ("Charges","","","section"),
         ("    Frais d'exploitation (annexe 2)", fmt_num(v(pl,"frais_exploitation")), fmt_num(vp(pl,"frais_exploitation")), "indent"),
@@ -1056,24 +1195,25 @@ def build_word(data, s):
         ("","","","blank"),
         ("Bénéfice net (perte nette)", fmt_with_dollar(v(pl,"benefice_net")), fmt_with_dollar(vp(pl,"benefice_net")), "grand"),
     ])
-    p=doc.add_paragraph(); run(p,"Se reporter aux notes afférentes aux états financiers.",size=8,color=GREY)
+    p=doc.add_paragraph(); ns(p,6,0)
+    run(p,"Se reporter aux notes afférentes aux états financiers.",size=8,color=GREY,italic=True)
     doc.add_page_break()
 
-    page_hdr("Annexes", period_str)
-    p=doc.add_paragraph(); run(p,"Annexe 1 - Coût des ventes",bold=True,size=10); p.paragraph_format.space_after=Pt(4)
+    page_hdr("Annexes", period_str, "Schedules")
+    annexe_title(1,"Coût des ventes","Cost of sales")
     make_table([
         ("Achats", fmt_with_dollar(v(a1,"achats")), fmt_with_dollar(vp(a1,"achats")), "normal"),
         ("Salaires et avantages sociaux", fmt_num(v(a1,"salaires")), fmt_num(vp(a1,"salaires")), "normal"),
         ("Sous-traitance", fmt_num(v(a1,"soustraitance")), fmt_num(vp(a1,"soustraitance")), "normal"),
         ("Frais de livraison", fmt_num(v(a1,"livraison")), fmt_num(vp(a1,"livraison")), "normal"),
         ("Logiciel", fmt_num(v(a1,"logiciel")), fmt_num(vp(a1,"logiciel")), "normal"),
-        ("", fmt_with_dollar(v(a1,"total")), fmt_with_dollar(vp(a1,"total")), "grand"),
+        ("Total — Coût des ventes", fmt_with_dollar(v(a1,"total")), fmt_with_dollar(vp(a1,"total")), "grand"),
     ])
-    p=doc.add_paragraph(); run(p,"Annexe 2 - Frais d'exploitation",bold=True,size=10); p.paragraph_format.space_after=Pt(4)
+    annexe_title(2,"Frais d'exploitation","Operating expenses")
     make_table([
-        ("Salaires et avantages sociaux - recherche et développement", fmt_with_dollar(v(a2,"salaires_rd")), fmt_with_dollar(vp(a2,"salaires_rd")), "normal"),
+        ("Salaires et avantages sociaux — recherche et développement", fmt_with_dollar(v(a2,"salaires_rd")), fmt_with_dollar(vp(a2,"salaires_rd")), "normal"),
         ("Crédits d'impôt pour la recherche et le développement", fmt_num(v(a2,"credits_rd")), fmt_num(vp(a2,"credits_rd")), "normal"),
-        ("Salaires et avantages sociaux - ventes et administration", fmt_num(v(a2,"salaires_admin")), fmt_num(vp(a2,"salaires_admin")), "normal"),
+        ("Salaires et avantages sociaux — ventes et administration", fmt_num(v(a2,"salaires_admin")), fmt_num(vp(a2,"salaires_admin")), "normal"),
         ("Frais de déplacement", fmt_num(v(a2,"deplacement")), fmt_num(vp(a2,"deplacement")), "normal"),
         ("Location d'équipement", fmt_num(v(a2,"location_equip")), fmt_num(vp(a2,"location_equip")), "normal"),
         ("Publicité et promotion", fmt_num(v(a2,"publicite")), fmt_num(vp(a2,"publicite")), "normal"),
@@ -1093,24 +1233,25 @@ def build_word(data, s):
         ("(Gain) Perte de change", fmt_num(v(a2,"fx")), fmt_num(vp(a2,"fx")), "normal"),
         ("Intérêts et pénalités", fmt_num(v(a2,"interet_penalites")), fmt_num(vp(a2,"interet_penalites")), "normal"),
         ("Représentant externe", fmt_num(v(a2,"representant")), fmt_num(vp(a2,"representant")), "normal"),
-        ("", fmt_with_dollar(v(a2,"total")), fmt_with_dollar(vp(a2,"total")), "grand"),
+        ("Total — Frais d'exploitation", fmt_with_dollar(v(a2,"total")), fmt_with_dollar(vp(a2,"total")), "grand"),
     ])
     doc.add_page_break()
 
-    page_hdr("Annexes (suite)", period_str)
-    p=doc.add_paragraph(); run(p,"Annexe 3 - Frais financiers",bold=True,size=10); p.paragraph_format.space_after=Pt(4)
+    page_hdr("Annexes (suite)", period_str, "Schedules (continued)")
+    annexe_title(3,"Frais financiers","Financial expenses")
     make_table([
         ("Intérêts sur la dette à long terme", fmt_with_dollar(v(a3,"interet_lt")), fmt_with_dollar(vp(a3,"interet_lt")), "normal"),
         ("Intérêts et frais bancaires", fmt_num(v(a3,"frais_bancaires")), fmt_num(vp(a3,"frais_bancaires")), "normal"),
-        ("", fmt_with_dollar(v(a3,"total")), fmt_with_dollar(vp(a3,"total")), "grand"),
+        ("Total — Frais financiers", fmt_with_dollar(v(a3,"total")), fmt_with_dollar(vp(a3,"total")), "grand"),
     ])
-    p=doc.add_paragraph(); p.paragraph_format.space_before=Pt(14)
-    run(p,"Annexe 4 - Autres revenus",bold=True,size=10); p.paragraph_format.space_after=Pt(4)
+    annexe_title(4,"Autres revenus","Other income")
     make_table([
         ("Aide gouvernementale (note 15 b))", fmt_with_dollar(v(a4,"aide_gouv")), fmt_with_dollar(vp(a4,"aide_gouv")), "normal"),
         ("Autres revenus", fmt_num(v(a4,"autres")), fmt_num(vp(a4,"autres")), "normal"),
-        ("", fmt_with_dollar(v(a4,"total")), fmt_with_dollar(vp(a4,"total")), "grand"),
+        ("Total — Autres revenus", fmt_with_dollar(v(a4,"total")), fmt_with_dollar(vp(a4,"total")), "grand"),
     ])
+    p=doc.add_paragraph(); ns(p,10,0)
+    run(p,"Se reporter aux notes afférentes aux états financiers.",size=8,color=GREY,italic=True)
 
     buf=io.BytesIO(); doc.save(buf); buf.seek(0)
     return buf
