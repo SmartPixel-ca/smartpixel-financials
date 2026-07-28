@@ -76,18 +76,18 @@ with st.sidebar:
     # (percentage-of-completion, revenue recognition, loan amortization, lease
     # incentive). Rather than guess at them from raw QuickBooks accounts, take
     # them as direct input. Leaving a field at 0 keeps the derived figure.
-    with st.expander("🧾 Ajustements de l'auditeur", expanded=False):
-        st.caption("Ces montants proviennent des annexes préparées par le comptable "
-                   "et ne peuvent pas être déduits de la balance de vérification. "
-                   "Laisser à 0 pour conserver le montant calculé automatiquement.")
-        ov_wip_c = st.number_input("Travaux en cours — courant", value=114094.0, step=1.0, format="%.2f")
-        ov_wip_p = st.number_input("Travaux en cours — précédent", value=87770.0, step=1.0, format="%.2f")
-        ov_dr_c  = st.number_input("Produits reportés — courant", value=1167631.0, step=1.0, format="%.2f")
-        ov_dr_p  = st.number_input("Produits reportés — précédent", value=1102561.0, step=1.0, format="%.2f")
-        ov_ltd_c = st.number_input("Tranche court terme dette LT — courant", value=190753.0, step=1.0, format="%.2f")
-        ov_ltd_p = st.number_input("Tranche court terme dette LT — précédent", value=272176.0, step=1.0, format="%.2f")
-        ov_lease_c = st.number_input("Amort. incitatif bail (retiré du loyer) — courant", value=0.0, step=1.0, format="%.2f")
-        ov_lease_p = st.number_input("Amort. incitatif bail (retiré du loyer) — précédent", value=0.0, step=1.0, format="%.2f")
+    with st.expander("🧾 Auditor Adjustments", expanded=False):
+        st.caption("These figures come from schedules the accountant prepares separately "
+                   "and cannot be derived from the trial balance. "
+                   "Leave at 0 to keep the automatically calculated amount.")
+        ov_wip_c = st.number_input("Work in progress (Travaux en cours) — current", value=114094.0, step=1.0, format="%.2f")
+        ov_wip_p = st.number_input("Work in progress (Travaux en cours) — prior", value=87770.0, step=1.0, format="%.2f")
+        ov_dr_c  = st.number_input("Deferred revenue (Produits reportés) — current", value=1167631.0, step=1.0, format="%.2f")
+        ov_dr_p  = st.number_input("Deferred revenue (Produits reportés) — prior", value=1102561.0, step=1.0, format="%.2f")
+        ov_ltd_c = st.number_input("Current portion of long-term debt — current", value=190753.0, step=1.0, format="%.2f")
+        ov_ltd_p = st.number_input("Current portion of long-term debt — prior", value=272176.0, step=1.0, format="%.2f")
+        ov_lease_c = st.number_input("Lease incentive amortization (removed from rent) — current", value=0.0, step=1.0, format="%.2f")
+        ov_lease_p = st.number_input("Lease incentive amortization (removed from rent) — prior", value=0.0, step=1.0, format="%.2f")
 
     st.markdown("---")
     st.caption("SmartPixel Financial Tool · v3.1")
@@ -510,10 +510,10 @@ def categorize(company, fiscal_year, prior_year, period_end, lines, overrides=No
     for side in ("current", "prior"):
         if qb_profit[side]:
             roll_forward[side] = qb_profit[side]
-            roll_source[side] = "QuickBooks « Profit for the year »"
+            roll_source[side] = "QuickBooks \"Profit for the year\" line"
         else:
             roll_forward[side] = pl["benefice_net"][side]
-            roll_source[side] = "bénéfice net calculé (état des résultats)"
+            roll_source[side] = "net income computed from the income statement"
     bs["deficit"] = add2(bs["deficit"], roll_forward)
     bs["total_avoir"] = add2(bs["capital_actions"], bs["deficit"])
     bs["total_passif_avoir"] = add2(bs["total_passif"], bs["total_avoir"])
@@ -1319,11 +1319,11 @@ if "data_v3" in st.session_state:
             st.markdown("**Where the two sides land:**")
             d1, d2 = st.columns(2)
             with d1:
-                st.metric("Total actif (courant)", fmt_num((bs_d.get("total_actif") or {}).get("current", 0)))
-                st.metric("Total actif (précédent)", fmt_num((bs_d.get("total_actif") or {}).get("prior", 0)))
+                st.metric("Total assets (current)", fmt_num((bs_d.get("total_actif") or {}).get("current", 0)))
+                st.metric("Total assets (prior)", fmt_num((bs_d.get("total_actif") or {}).get("prior", 0)))
             with d2:
-                st.metric("Total passif + avoir (courant)", fmt_num((bs_d.get("total_passif_avoir") or {}).get("current", 0)))
-                st.metric("Total passif + avoir (précédent)", fmt_num((bs_d.get("total_passif_avoir") or {}).get("prior", 0)))
+                st.metric("Total liabilities + equity (current)", fmt_num((bs_d.get("total_passif_avoir") or {}).get("current", 0)))
+                st.metric("Total liabilities + equity (prior)", fmt_num((bs_d.get("total_passif_avoir") or {}).get("prior", 0)))
 
             if st.checkbox("Show account-level tie-out table"):
                 rows = []
@@ -1359,29 +1359,29 @@ if "data_v3" in st.session_state:
     rollsrc = data.get("_roll_source", {})
     rollfwd = data.get("_roll_forward", {})
     if rollsrc:
-        with st.expander("📈 Report du bénéfice au déficit — source par exercice", expanded=False):
-            st.caption("Le compte 3560 ne contient que le solde d'ouverture. Le bénéfice de "
-                       "l'exercice doit y être ajouté pour obtenir le déficit de clôture.")
-            for side, lbl in (("current", "Exercice courant"), ("prior", "Exercice précédent")):
+        with st.expander("📈 Profit roll-forward into deficit — source per year", expanded=False):
+            st.caption("Account 3560 holds only the opening balance. The year's profit must be "
+                       "added to it to arrive at the closing deficit.")
+            for side, lbl in (("current", "Current year"), ("prior", "Prior year")):
                 st.markdown(f"**{lbl}** — {fmt_with_dollar(rollfwd.get(side, 0))}  \n"
-                            f"Source : {rollsrc.get(side, '—')}")
+                            f"Source: {rollsrc.get(side, '—')}")
 
     flipped = data.get("_sign_flipped", {})
     if flipped:
-        with st.expander(f"🔄 {len(flipped)} compte(s) — signe normalisé pour la présentation auditée", expanded=False):
-            st.caption("Ces comptes sont classés par QuickBooks du côté opposé à leur présentation "
-                       "dans les états financiers audités. Le signe est inversé avant tout regroupement.")
+        with st.expander(f"🔄 {len(flipped)} account(s) — sign normalized for the audited presentation", expanded=False):
+            st.caption("These accounts are filed by QuickBooks on the opposite side from their "
+                       "presentation in the audited statements. The sign is normalized before any bucketing.")
             for code, info in flipped.items():
                 st.markdown(f"**{code}** — {info['description']}  \n"
-                            f"Après inversion — Courant : {fmt_with_dollar(info['current'])} · "
-                            f"Précédent : {fmt_with_dollar(info['prior'])}")
+                            f"After normalization — Current: {fmt_with_dollar(info['current'])} · "
+                            f"Prior: {fmt_with_dollar(info['prior'])}")
 
     applied = data.get("_applied_overrides", {})
     if applied:
-        labels = {"travaux_en_cours": "Travaux en cours",
-                  "produits_reportes": "Produits reportés",
-                  "tranche_ct_lt": "Tranche à court terme de la dette à long terme"}
-        st.info("🧾 Ajustements de l'auditeur appliqués : " +
+        labels = {"travaux_en_cours": "Work in progress (Travaux en cours)",
+                  "produits_reportes": "Deferred revenue (Produits reportés)",
+                  "tranche_ct_lt": "Current portion of long-term debt"}
+        st.info("🧾 Auditor Adjustments applied: " +
                 ", ".join(f"{labels.get(k, k)} ({', '.join(v)})" for k, v in applied.items()))
 
     needs_review = data.get("_needs_review", {})
@@ -1412,7 +1412,7 @@ if "data_v3" in st.session_state:
     with c4:
         bs = data.get("bs", {})
         ta = (bs.get("total_actif",{}) or {}).get("current",0) if bs else 0
-        st.markdown(f'<div class="kpi-card"><div class="kpi-label">Total actif</div><div class="kpi-value">{fmt_num(ta)}</div></div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-card"><div class="kpi-label">Total assets</div><div class="kpi-value">{fmt_num(ta)}</div></div>',unsafe_allow_html=True)
 
     st.markdown("---")
     col1,col2=st.columns(2)
